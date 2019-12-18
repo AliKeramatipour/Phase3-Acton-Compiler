@@ -17,6 +17,10 @@ public class ActorDeclaration extends Declaration {
     private Identifier name;
     private Identifier parentName;
     private int queueSize;
+    private boolean hasExtendFix;
+
+    public void setHasExtendFix(boolean inp) { hasExtendFix = inp; }
+    public boolean getHasExtendFix(){ return hasExtendFix;}
 
     public ActorDeclaration(Identifier name){
         this.name = name;

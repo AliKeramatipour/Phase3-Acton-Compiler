@@ -2,7 +2,7 @@ package main.ast.node.expression;
 
 import main.visitor.Visitor;
 
-public class Identifier extends Expression {
+public class  Identifier extends Expression {
     private String name;
 
     public Identifier(String name) {

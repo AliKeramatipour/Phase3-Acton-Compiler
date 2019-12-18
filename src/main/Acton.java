@@ -3,6 +3,7 @@ package main;
 import main.ast.node.Program;
 import main.compileError.CompileErrorException;
 //import main.visitor.astPrinter.ASTPrinter;
+import main.visitor.VisitorImpl;
 import main.visitor.nameAnalyser.NameAnalyser;
 import org.antlr.v4.runtime.*;
 import main.parsers.actonLexer;
@@ -22,18 +23,20 @@ public class Acton {
             Program program = parser.program().p; // program is starting production rule
             NameAnalyser nameAnalyser = new NameAnalyser();
             nameAnalyser.visit(program);
-            if( nameAnalyser.numOfErrors() > 0 )
+            if( nameAnalyser.numOfErrors() > 0 ) {
                 throw new CompileErrorException();
+            }
 
-            visitorImpl
+            VisitorImpl visitorImpl = new VisitorImpl() ;
+            visitorImpl.visit(program);
+
+            if ( visitorImpl.nameErrors.size() > 0 ) {
+                throw new CompileErrorException();
+            }
 
 
         }
         catch(CompileErrorException compileError){
         }
-
-
-
-
     }
 }

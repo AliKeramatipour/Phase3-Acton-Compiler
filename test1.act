@@ -1,0 +1,112 @@
+actor A extends B(0) {
+	knownactors {
+		C c;
+	}
+	actorvars {
+		int i;
+	}
+	msghandler foo() {
+		print("foo");
+	}
+	msghandler bar() {
+		print("bar");
+	}
+}
+
+actor B extends C(1) {
+	knownactors {
+		C c;
+	}
+	actorvars {
+		int i[0];
+	}
+	msghandler foo() {
+		print("foo");
+	}
+	msghandler bar(string s) {
+		print("bar");
+	}
+}
+
+actor C extends A(1) {
+	knownactors {
+	}
+	actorvars {
+		int i;
+	}
+	msghandler foo(int a) {
+		print("foo");
+	}
+	msghandler bar() {
+		print("bar");
+	}
+}
+
+actor temp(1){
+	knownactors {
+	}
+	actorvars {
+		int var;
+	}
+	msghandler msg(){
+		int var;
+		print("msg1");
+	}
+	msghandler msg(int a){
+		print("msg1");
+	}
+}
+
+actor temp(2){
+	knownactors {
+	}
+	actorvars {
+	}
+}
+
+
+main{
+	A a(c):();
+	B b(c):();
+	C c():();
+}
+
+
+-------------
+
+actor A(5) {
+   knownactors {
+       A a;
+       B b;
+   }
+   actorvars {
+       int ii[100];
+       int t;
+       boolean odd;
+    }
+
+   msghandler arrive(int i2){
+        boolean WTF;
+        t = (AA+BB)++;
+        ii.idk();
+        jlk.idk();
+        a.idk();
+        a.arrivee();
+   }
+}
+
+actor B extends A(7) {
+    knownactors {
+        qqq c;
+    }
+    actorvars {
+
+    }
+    msghandler idk(){
+         c.arrive();
+         self.idk11();
+    }
+}
+
+main {
+}
