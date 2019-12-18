@@ -8,13 +8,35 @@ actor A(5) {
        boolean odd;
     }
 
+   msghandler initial()
+   {
+
+   }
    msghandler arrive(int i2){
-        t = ii[100] + t;
+        t = ii[100]++ + t;
         t = !true;
+        2 = t;
         for (;true;)
             break;
         print(t);
    }
 }
+
+actor B extends A(7) {
+    knownactors {
+        A c;
+    }
+    actorvars {
+
+    }
+    msghandler idk(){
+         c.arrive();
+         self.idk11();
+    }
+}
+
 main {
+    A a1(b1):();
+    A a2(a1):();
+    B b1(a1):();
 }
