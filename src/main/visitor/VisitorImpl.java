@@ -125,12 +125,11 @@ public class VisitorImpl implements Visitor {
     @Override
     public void visit(ActorDeclaration actorDeclaration) {
 
-        System.out.println("actor in  :" + actorDeclaration.getName().getName());
         //presettings
         try {
             actorWeAreIn = actorDeclaration;
             SymbolTable.top = ((SymbolTableActorItem) SymbolTable.root.get("Actor_" + actorDeclaration.getName().getName())).getActorSymbolTable();
-            printTopSymbolTable();
+
         }catch ( ItemNotFoundException exp)
         {
             addError(actorDeclaration.getName().getLine(), "ERROR CODE #0ff");
@@ -176,10 +175,7 @@ public class VisitorImpl implements Visitor {
         for (MsgHandlerDeclaration tmp : actorDeclaration.getMsgHandlers() )
             visit(tmp);
 
-
-
-        System.out.println("actor out :" + actorDeclaration.getName().getName());
-        System.out.println();
+        actorWeAreIn = null;
     }
 
     @Override
@@ -210,14 +206,14 @@ public class VisitorImpl implements Visitor {
                 visit(tmp);
         } catch (ItemNotFoundException exp)
         {
-            System.out.println("main symbol table not found error code #4ff");
+            addError(mainActors.getLine(),"main symbol table not found error code #4ff");
         }
     }
 
     @Override
     public void visit(ActorInstantiation actorInstantiation) {
-        System.out.println(actorInstantiation.getIdentifier().getName());
         ActorDeclaration thisActor = getActorDeclaration(actorInstantiation.getType().toString());
+        ArrayList<VarDeclaration> allKnownActors = new ArrayList<>();
         if ( thisActor == null )
         {
             addError(actorInstantiation.getLine(), "actor type not declared");
@@ -225,7 +221,16 @@ public class VisitorImpl implements Visitor {
         }
 
         //if size of known actors are the same as passed
-        if ( thisActor.getKnownActors().size() != actorInstantiation.getKnownActors().size() )
+
+        //WE SHOULD ALSO GET ITS PARENTS KNOWNACTORS
+        ActorDeclaration par = thisActor;
+        while ( par != null ){
+            for ( VarDeclaration knownactor : par.getKnownActors() )
+                allKnownActors.add(knownactor);
+            par = getActorDeclaration(par.getParentName().getName());
+        }
+
+        if ( allKnownActors.size() != actorInstantiation.getKnownActors().size() )
         {
             addError(actorInstantiation.getLine(), "knownactors does not match with definition");
             return;
@@ -236,7 +241,7 @@ public class VisitorImpl implements Visitor {
             Identifier id = actorInstantiation.getKnownActors().get(i);
             visit(id);
             String first = id.getType().toString();
-            String second = thisActor.getKnownActors().get(i).getType().toString();
+            String second = allKnownActors.get(i).getType().toString();
             if ( first.equals("notype") || second.equals("notype"))
                 return;
             if ( !first.equals(second))
@@ -334,9 +339,7 @@ public class VisitorImpl implements Visitor {
                 binaryExpression.getBinaryOperator() == BinaryOperator.mult ||
                 binaryExpression.getBinaryOperator() == BinaryOperator.sub ||
                 binaryExpression.getBinaryOperator() == BinaryOperator.div ||
-                binaryExpression.getBinaryOperator() == BinaryOperator.mod ||
-                binaryExpression.getBinaryOperator() == BinaryOperator.gt  ||
-                binaryExpression.getBinaryOperator() == BinaryOperator.lt
+                binaryExpression.getBinaryOperator() == BinaryOperator.mod
             )
         {
             if ( !(l.getType().toString().equals("int")) && !(l.getType().toString().equals("notype")) ) {
@@ -351,6 +354,26 @@ public class VisitorImpl implements Visitor {
                 binaryExpression.setType(l.getType());
             }
         }
+
+        if (    binaryExpression.getBinaryOperator() == BinaryOperator.gt  ||
+                binaryExpression.getBinaryOperator() == BinaryOperator.lt
+        )
+        {
+            if ( !(l.getType().toString().equals("int")) && !(l.getType().toString().equals("notype")) ) {
+                addError(l.getLine(), "unsupported operand type for " + binaryExpression.getBinaryOperator() );
+                binaryExpression.setType(new NoType());
+            } else if ( !(r.getType().toString().equals("int")) && !(r.getType().toString().equals("notype")) ) {
+                addError(r.getLine(), "unsupported operand type for " + binaryExpression.getBinaryOperator());
+                binaryExpression.setType(new NoType());
+            }else if ( r.getType().toString().equals("notype") || l.getType().toString().equals("notype") ) {
+                binaryExpression.setType(new NoType());
+            } else {
+                binaryExpression.setType(new BooleanType());
+            }
+        }
+
+
+
 
         if (    binaryExpression.getBinaryOperator() == BinaryOperator.or ||
                 binaryExpression.getBinaryOperator() == BinaryOperator.and
@@ -461,7 +484,11 @@ public class VisitorImpl implements Visitor {
     @Override
     public void visit(Self self) {
         isSelfSenderOrIdentifier = "self";
-
+        if ( actorWeAreIn == null )
+        {
+            addError(self.getLine(), "self should be called inside an actor declaration");
+        }
+        self.setType(actorWeAreIn.getName().getType());
     }
 
     @Override
@@ -471,6 +498,11 @@ public class VisitorImpl implements Visitor {
         {
             addError(sender.getLine(), "no sender in initial msghandler");
         }
+        if ( actorWeAreIn == null )
+        {
+            addError(sender.getLine(), "sender should be called inside an actor declaration");
+        }
+        sender.setType(new NoType());
     }
 
     @Override
@@ -543,7 +575,9 @@ public class VisitorImpl implements Visitor {
         //check if there is such msgHandler
 
         //avval bayad check konim ke bara kiio call karde ... self bude ya sender bude ya yek kase dg
+        msgHandlerCall.getInstance().setLine(msgHandlerCall.getLine());
         visitExpr(msgHandlerCall.getInstance());
+        //551 BUG their bug :|
         if ( isSelfSenderOrIdentifier.equals("identifier") )
         {
             Identifier id = (Identifier)msgHandlerCall.getInstance();
@@ -554,10 +588,10 @@ public class VisitorImpl implements Visitor {
                 addError(id.getLine(), "variable " + id.getName() + " is not callable");
             }else {
                 try {
-                    ((SymbolTableActorItem)SymbolTable.root.get("Actor_" + whatType)).getActorSymbolTable().get("Handler_" + msgHandlerCall.getMsgHandlerName().getName());
+                    SymbolTableHandlerItem tmp = (SymbolTableHandlerItem)(((SymbolTableActorItem)SymbolTable.root.get("Actor_" + whatType)).getActorSymbolTable().get("Handler_" + msgHandlerCall.getMsgHandlerName().getName()));
                     // hala bayad validity field hayy ke pass mide ro barresi konim
                     ActorDeclaration thisActor = getActorDeclaration(whatType);
-                    MsgHandlerDeclaration thisMsgHandler = findMsgHandlerDec(thisActor, msgHandlerCall.getMsgHandlerName().getName());
+                    MsgHandlerDeclaration thisMsgHandler = (MsgHandlerDeclaration)tmp.getHandlerDeclaration();
                     if ( msgHandlerCall.getArgs().size() != thisMsgHandler.getArgs().size() )
                     {
                         addError(msgHandlerCall.getLine(), "msgHandler input args does not match with definition");

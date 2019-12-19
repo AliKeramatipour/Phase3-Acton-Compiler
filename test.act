@@ -1,42 +1,74 @@
-actor A(5) {
-   knownactors {
-       A a;
-   }
-   actorvars {
-       int ii[100];
-       int t;
-       boolean odd;
+actor A extends T(4) {
+    knownactors {
+        B b;
+        A a;
     }
+    actorvars {
+        int i;
+    }
+    msghandler foo() {
+        for(i = 0; i < 5; i = i + 1) {
 
-   msghandler initial()
-   {
-
-   }
-   msghandler arrive(int i2){
-        t = ii[100]++ + t;
-        t = !true;
-        2 = t;
-        for (;true;)
-            break;
-        print(t);
-   }
+        }
+        break;
+        2 = 3;
+    }
 }
 
-actor B extends A(7) {
+actor B extends A(2) {
     knownactors {
-        A c;
+        C c;
     }
     actorvars {
 
     }
-    msghandler idk(){
-         c.arrive();
-         self.idk11();
+    msghandler initial() {
+        c = sender;
+        sender.foo();
+    }
+}
+
+actor C(2) {
+    knownactors {
+        B b;
+        P p;
+        D d;
+    }
+    actorvars {
+        int r;
+    }
+    msghandler foo() {
+        b.foo();
+        d.foo();
+        r.foo();
+    }
+}
+
+actor D(1) {
+    knownactors {
+        A a;
+        B b;
+    }
+    actorvars {
+
+    }
+    msghandler goo() {
+        int o;
+        string f;
+        boolean h;
+        o = o + 2;
+        o = o + f;
+        h = true || !false;
+        o = 2 + "hi";
+        b = a;
+        a = b;
     }
 }
 
 main {
-    A a1(b1):();
-    A a2(a1):();
-    B b1(a1):();
+    T a1():();
+    B a2():();
+    A a3(a2, a2):();
+    A a4(a3, a3):();
+    A a5(a1, a2, a3):();
 }
