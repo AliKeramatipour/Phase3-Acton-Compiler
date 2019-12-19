@@ -227,9 +227,11 @@ public class VisitorImpl implements Visitor {
         while ( par != null ){
             for ( VarDeclaration knownactor : par.getKnownActors() )
                 allKnownActors.add(knownactor);
+
+            if ( !par.hasParent )
+                break;
             par = getActorDeclaration(par.getParentName().getName());
         }
-
         if ( allKnownActors.size() != actorInstantiation.getKnownActors().size() )
         {
             addError(actorInstantiation.getLine(), "knownactors does not match with definition");
@@ -263,12 +265,12 @@ public class VisitorImpl implements Visitor {
         {
             addError(actorInstantiation.getLine(), "initial vars does not match with definition");
             return ;
-        }
 
+        }
         for ( int i = 0 ; i < actorInstantiation.getInitArgs().size() ; i++ )
         {
-            Identifier id = actorInstantiation.getKnownActors().get(i);
-            visit(id);
+            Expression id = actorInstantiation.getInitArgs().get(i);
+            visitExpr(id);
             String first  = id.getType().toString();
             String second = thisActor.getInitHandler().getArgs().get(i).getType().toString();
             if ( first.equals("notype") || second.equals("notype"))
@@ -299,6 +301,7 @@ public class VisitorImpl implements Visitor {
         {
             if ( unaryExpression.getOperand() instanceof Identifier ) {
                 if (!unaryExpression.getOperand().getType().toString().equals("boolean")) {
+                    unaryExpression.setType(new NoType());
                     addError(unaryExpression.getLine(), "not a boolean type to use operator not");
                     return;
                 }
@@ -308,6 +311,7 @@ public class VisitorImpl implements Visitor {
                 unaryExpression.setType(new BooleanType());
                 return ;
             }
+            unaryExpression.setType(new NoType());
             addError(unaryExpression.getLine(), "not a boolean type to use operator not");
             return ;
         }

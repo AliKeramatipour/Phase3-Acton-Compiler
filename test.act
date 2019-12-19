@@ -1,74 +1,51 @@
-actor A extends T(4) {
-    knownactors {
-        B b;
-        A a;
-    }
-    actorvars {
-        int i;
-    }
-    msghandler foo() {
-        for(i = 0; i < 5; i = i + 1) {
+actor A extends B(5) {
+	knownactors {
+	}
 
-        }
-        break;
-        2 = 3;
-    }
+	actorvars {
+		int b;
+	}
+
+	msghandler foo() {
+		int b;
+		b = "string" + c;
+		a = sender + !(b == self.b);
+	}
 }
 
-actor B extends A(2) {
-    knownactors {
-        C c;
-    }
-    actorvars {
+actor B(3) {
+	knownactors {
+	}
 
-    }
-    msghandler initial() {
-        c = sender;
-        sender.foo();
-    }
+	actorvars {
+		int i;
+	}
+
+	msghandler bar(string s) {
+        self.foo();
+	}
 }
 
 actor C(2) {
-    knownactors {
-        B b;
-        P p;
-        D d;
-    }
-    actorvars {
-        int r;
-    }
-    msghandler foo() {
-        b.foo();
-        d.foo();
-        r.foo();
-    }
-}
+	knownactors {
+		B b;
+		A a;
+	}
 
-actor D(1) {
-    knownactors {
-        A a;
-        B b;
-    }
-    actorvars {
+	actorvars {
+		int var;
+	}
 
-    }
-    msghandler goo() {
-        int o;
-        string f;
-        boolean h;
-        o = o + 2;
-        o = o + f;
-        h = true || !false;
-        o = 2 + "hi";
-        b = a;
-        a = b;
-    }
+	msghandler foo() {
+		if(a){
+			b = a;
+			b.bar(2 + true % !sender);
+		}
+	}
 }
 
 main {
-    T a1():();
-    B a2():();
-    A a3(a2, a2):();
-    A a4(a3, a3):();
-    A a5(a1, a2, a3):();
+	A a():();
+	B b():();
+	C c(a, ab):(1 + !d);
 }
