@@ -1,0 +1,11 @@
+Line:11:variable c is not declared
+Line:11:unsupported operand type for add
+Line:12:variable a is not declared
+Line:12:unsupported operand type for add
+Line:25:there is no msghandler named foo in actor B
+Line:40:condition type must be boolean
+Line:42:Unsupported operand type for not
+Line:42:unsupported operand type for mod
+Line:50:variable ab is not declared
+Line:50:variable d is not declared
+Line:50:arguments do not match with definition

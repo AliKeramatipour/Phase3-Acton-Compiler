@@ -1,0 +1,17 @@
+Line:13:variable a is not declared
+Line:14:operation assign requires equal array sizes
+Line:15:variable a is not declared
+Line:16:variable b is not callable
+Line:28:variable a1 is not declared
+Line:28:Unsupported operand type for increment
+Line:28:lvalue required as increment operand
+Line:34:actor D is not declared
+Line:42:unsupported operand type for lt
+Line:43:left side of assignment must be a valid lvalue
+Line:44:lvalue required as increment operand
+Line:45:variable i is not callable
+Line:51:variable b1 is not declared
+Line:51:knownactors do not match with definition
+Line:52:knownactors do not match with definition
+Line:53:variable b is not declared
+Line:54:knownactors do not match with definition

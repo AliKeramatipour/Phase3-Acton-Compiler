@@ -1,0 +1,50 @@
+actor A extends X(5){
+	knownactors {
+		C c;
+	}
+
+	actorvars {
+		int a;
+	}
+	
+	msghandler a() {
+		c.b(a);
+	}
+}
+
+actor B (5) {
+	knownactors {
+	}
+
+	actorvars {
+		boolean check;
+	}
+
+	msghandler initial(boolean b)
+	{
+		checker = b;
+		sender = checker;
+		continue;
+	}
+	
+	msghandler b(int a, string s) {
+	}
+}
+
+actor C extends B(5) {
+	knownactors {
+	}
+
+	actorvars {
+	}
+	
+	msghandler c() {
+		print(sender);	
+	}
+}
+
+
+main {
+	A a2(a1):();
+	B b():(!self.isTrue);
+}

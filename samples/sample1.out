@@ -1,0 +1,10 @@
+Line:1:actor X is not declared
+Line:11:arguments do not match with definition
+Line:25:variable checker is not declared
+Line:26:no sender in initial msghandler
+Line:26:variable checker is not declared
+Line:26:left side of assignment must be a valid lvalue
+Line:27:continue statement not within loop
+Line:42:unsupported type for print
+Line:48:variable a1 is not declared
+Line:49:self doesn't refer to any actor

@@ -1,0 +1,51 @@
+actor A extends B(5) {
+	knownactors {
+	}
+
+	actorvars {
+		int b;
+	}
+	
+	msghandler foo() {
+		int b;
+		b = "string" + c;
+		a = sender + !(b == self.b);
+	}
+}
+
+actor B(3) {
+	knownactors {
+	}
+
+	actorvars {
+		int i;
+	}
+	
+	msghandler bar(string s) {
+        self.foo();
+	}
+}
+
+actor C(2) {
+	knownactors {
+		B b;
+		A a;
+	}
+
+	actorvars {
+		int var;
+	}
+
+	msghandler foo() {
+		if(a){
+			b = a;
+			b.bar(2 + true % !sender);
+		}
+	}
+}
+
+main {
+	A a():();
+	B b():();
+	C c(a, ab):(1 + !d);
+}
