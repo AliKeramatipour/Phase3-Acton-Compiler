@@ -43,7 +43,7 @@ public class TypeChecker extends VisitorImpl {
 
     public void addError(int line, String msg)
     {
-        String s = "Line:" + line +" : " + msg;
+        String s = "Line:" + line + ":" + msg;
         System.out.println(s);
         nameErrors.add(s);
     }
