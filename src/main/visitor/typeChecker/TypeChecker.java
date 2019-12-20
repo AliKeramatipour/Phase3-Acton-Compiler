@@ -139,7 +139,7 @@ public class TypeChecker extends VisitorImpl {
             try {
                 ((SymbolTableActorItem) SymbolTable.root.get(SymbolTableActorItem.STARTKEY + actorDeclaration.getParentName().getName())).getActorSymbolTable();
             } catch (ItemNotFoundException exp) {
-                addError(actorDeclaration.getName().getLine(), "actor type " + actorDeclaration.getParentName().getName() + " not declared");
+                addError(actorDeclaration.getName().getLine(), String.format("actor %s is not declared", actorDeclaration.getParentName().getName()));
             }
         }
 
@@ -148,7 +148,7 @@ public class TypeChecker extends VisitorImpl {
             try {
                 SymbolTable.root.get(SymbolTableActorItem.STARTKEY + tmp.getType().toString());
             } catch (ItemNotFoundException exp) {
-                addError(tmp.getIdentifier().getLine(), String.format("actor type %s not declared", tmp.getType().toString()));
+                addError(tmp.getIdentifier().getLine(), String.format("actor %s is not declared", tmp.getType().toString()));
                 try {
                     SymbolTableVariableItem test = (SymbolTableVariableItem) SymbolTable.top.get(SymbolTableVariableItem.STARTKEY + tmp.getIdentifier().getName());
                     test.setType(new NoType());
@@ -183,8 +183,9 @@ public class TypeChecker extends VisitorImpl {
         } catch (ItemNotFoundException exp) {
             addError(handlerDeclaration.getLine(), "CODE #1FF");
         }
-        for (Statement tmp : handlerDeclaration.getBody())
+        for (Statement tmp : handlerDeclaration.getBody()) {
             visitStatement(tmp);
+        }
         SymbolTable.top = SymbolTable.top.getPreSymbolTable();
     }
 
@@ -211,6 +212,7 @@ public class TypeChecker extends VisitorImpl {
         ActorDeclaration thisActor = getActorDeclaration(actorInstantiation.getType().toString());
         ArrayList<VarDeclaration> allKnownActors = new ArrayList<>();
         if (thisActor == null) {
+//            TODO: fix this error msg
             addError(actorInstantiation.getLine(), "actor type not declared");
             return;
         }
@@ -440,9 +442,9 @@ public class TypeChecker extends VisitorImpl {
             SymbolTableVariableItem getItem = (SymbolTableVariableItem) SymbolTable.top.get(searchVal);
             identifier.setType(getItem.getType());
         } catch (ItemNotFoundException exp) {
-            if (identifier.getType() != null && identifier.getType().toString().equals("noType"))
-                return;
-            addError(identifier.getLine(), String.format("variable %s not declared", identifier.getName()));
+//            if (identifier.getType() != null && identifier.getType().toString().equals("noType"))
+//                return;
+            addError(identifier.getLine(), String.format("variable %s is not declared", identifier.getName()));
             identifier.setType(new NoType());
         }
     }
@@ -465,7 +467,7 @@ public class TypeChecker extends VisitorImpl {
         if (actorWeAreIn == null) {
             addError(sender.getLine(), "sender should be called inside an actor declaration");
         }
-        sender.setType(new NoType());
+//        sender.setType(new NoType());
     }
 
     @Override
@@ -552,7 +554,7 @@ public class TypeChecker extends VisitorImpl {
                     ActorDeclaration thisActor = getActorDeclaration(whatType);
                     MsgHandlerDeclaration thisMsgHandler = (MsgHandlerDeclaration) tmp.getHandlerDeclaration();
                     if (msgHandlerCall.getArgs().size() != thisMsgHandler.getArgs().size()) {
-                        addError(msgHandlerCall.getLine(), "msgHandler input args does not match with definition");
+                        addError(msgHandlerCall.getLine(), "arguments do not match with definition");
                         return;
                     }
                     for (int i = 0; i < msgHandlerCall.getArgs().size(); i++) {
@@ -567,7 +569,7 @@ public class TypeChecker extends VisitorImpl {
                         if (first.equals("noType") || second.equals("noType"))
                             continue;
                         if (!first.equals(second)) {
-                            addError(msgHandlerArg.getLine(), "msgHandler input args does not match with definition");
+                            addError(msgHandlerArg.getLine(), "arguments do not match with definition");
                             return;
                         }
                     }
@@ -601,7 +603,7 @@ public class TypeChecker extends VisitorImpl {
     @Override
     public void visit(Print print) {
         visitExpr(print.getArg());
-        if (!hasValidType(print.getArg().getType().toString())) {
+        if (print.getArg().getType() == null || !hasValidType(print.getArg().getType().toString())) {
             addError(print.getLine(), "unsupported type for print");
         }
     }
@@ -611,19 +613,24 @@ public class TypeChecker extends VisitorImpl {
         //TODO: implement appropriate visit functionality
         Expression l = assign.getlValue();
         Expression r = assign.getrValue();
+
         visitExpr(l);
-        if (!(l instanceof Identifier)) {
-            addError(l.getLine(), "left side of assignment must be a valid lvalue");
-            return;
-        }
         visitExpr(r);
 
-        if (l.getType().toString().equals("noType") || r.getType().toString().equals("noType")) {
-        } else if (!canNotBeAssignedTo(l.getType().toString(), r.getType().toString())) {
+        if (!(l instanceof Identifier)) {
+            addError(l.getLine(), "left side of assignment must be a valid lvalue");
+        }
+
+        if (l.getType() == null || l.getType() instanceof NoType) {
+            return;
+        }
+        if (r.getType() == null || r.getType() instanceof NoType) {
+            return;
+        }
+        if (!canNotBeAssignedTo(l.getType().toString(), r.getType().toString())) {
             addError(l.getLine(), "left side of assignment must have same type of right side or be a subtype");
         } else if (l.getType().toString().equals("int[]") || r.getType().toString().equals("int[]")) {
             addError(l.getLine(), "arrays can not be assigned");
-        } else {
         }
     }
 
