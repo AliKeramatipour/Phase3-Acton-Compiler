@@ -155,62 +155,63 @@ public class TypeChecker extends VisitorImpl {
     @Override
     public void visit(ActorInstantiation actorInstantiation) {
         ActorDeclaration thisActor = getActorDeclaration(actorInstantiation.getType().toString());
-        ArrayList<VarDeclaration> allKnownActors = new ArrayList<>();
         if (thisActor == null) {
-//            TODO: fix this error msg
-            addError(actorInstantiation.getLine(), "actor type not declared");
+            addError(actorInstantiation.getLine(), String.format("actor %s is not declared", actorInstantiation.getType()));
             return;
         }
 
-        //if size of known actors are the same as passed
-
-        //WE SHOULD ALSO GET ITS PARENTS KNOWNACTORS
-        ActorDeclaration par = thisActor;
-        while (par != null) {
-            allKnownActors.addAll(par.getKnownActors());
-
-            if (!par.hasParent)
+        ArrayList<VarDeclaration> allKnownActors = new ArrayList<>();
+        ActorDeclaration curr = thisActor;
+        while (curr != null) {
+            allKnownActors.addAll(curr.getKnownActors());
+            if (!curr.hasParent)
                 break;
-            par = getActorDeclaration(par.getParentName().getName());
+            curr = getActorDeclaration(curr.getParentName().getName());
         }
-        if (allKnownActors.size() != actorInstantiation.getKnownActors().size()) {
+
+        ArrayList<Identifier> knownActors = actorInstantiation.getKnownActors();
+        if (allKnownActors.size() != knownActors.size()) {
             addError(actorInstantiation.getLine(), "knownactors do not match with definition");
             return;
         }
-
-        for (int i = 0; i < actorInstantiation.getKnownActors().size(); i++) {
-            Identifier id = actorInstantiation.getKnownActors().get(i);
+           
+        for (int i = 0; i < knownActors.size(); i++) {
+            Identifier id = knownActors.get(i);
             visit(id);
-            String first = id.getType().toString();
-            String second = allKnownActors.get(i).getType().toString();
-            if (first.equals("noType") || second.equals("noType"))
+
+            Type first = id.getType();
+            Type second = allKnownActors.get(i).getType();
+            if (first instanceof NoType || second instanceof NoType)
                 return;
-            if (!first.equals(second)) {
+            if (!first.toString().equals(second.toString())) {
                 addError(actorInstantiation.getLine(), "knownactors do not match with definition");
                 return;
             }
         }
 
-        //intial handler call check
-        if (thisActor.getInitHandler() == null) {
+        ArrayList<Expression> initArgs = actorInstantiation.getInitArgs();
+        InitHandlerDeclaration initHandlerDeclaration = thisActor.getInitHandler();
+        if (initHandlerDeclaration == null) {
             if (actorInstantiation.getInitArgs().size() != 0)
                 addError(actorInstantiation.getLine(), "initial vars does not match with definition");
             return;
         }
 
-        if (actorInstantiation.getInitArgs().size() != thisActor.getInitHandler().getArgs().size()) {
+        ArrayList<VarDeclaration> initHandlerArgs = initHandlerDeclaration.getArgs();
+        if (initArgs.size() != initHandlerArgs.size()) {
             addError(actorInstantiation.getLine(), "initial vars does not match with definition");
             return;
-
         }
-        for (int i = 0; i < actorInstantiation.getInitArgs().size(); i++) {
-            Expression id = actorInstantiation.getInitArgs().get(i);
+
+        for (int i = 0; i < initArgs.size(); i++) {
+            Expression id = initArgs.get(i);
             visitExpr(id);
-            String first = id.getType().toString();
-            String second = thisActor.getInitHandler().getArgs().get(i).getType().toString();
-            if (first.equals("noType") || second.equals("noType"))
+
+            Type first = id.getType();
+            Type second = initHandlerArgs.get(i).getType();
+            if (first instanceof NoType || second instanceof NoType)
                 continue;
-            if (!first.equals(second)) {
+            if (!first.toString().equals(second.toString())) {
                 addError(actorInstantiation.getLine(), "initial vars does not match with definition");
                 return;
             }
@@ -301,21 +302,18 @@ public class TypeChecker extends VisitorImpl {
         if (binaryOperator == BinaryOperator.gt ||
                 binaryOperator == BinaryOperator.lt
         ) {
+            binaryExpression.setType(new BooleanType());
 
             boolean isLTypeOk = lType instanceof IntType;
             boolean isRTypeOk = rType instanceof IntType;
-            boolean isOk =  isLTypeOk && isRTypeOk;
-            if (isOk) {
-                binaryExpression.setType(new BooleanType());
-            } else {
-                binaryExpression.setType(new NoType());
-                if (!isLTypeOk) {
-                    addError(l.getLine(), String.format("unsupported operand type for %s", binaryOperator));
-                }
-                if (!isRTypeOk) {
-                    addError(r.getLine(), String.format("unsupported operand type for %s", binaryOperator));
-                }
+
+            if (!isLTypeOk) {
+                addError(l.getLine(), String.format("unsupported operand type for %s", binaryOperator));
             }
+            if (!isRTypeOk) {
+                addError(r.getLine(), String.format("unsupported operand type for %s", binaryOperator));
+            }
+
         }
 
 
@@ -338,23 +336,19 @@ public class TypeChecker extends VisitorImpl {
         if (binaryOperator == BinaryOperator.eq ||
                 binaryOperator == BinaryOperator.neq
         ) {
+            binaryExpression.setType(new BooleanType());
+
             if (lType instanceof ArrayType && rType instanceof ArrayType) {
                 isOk = ((ArrayType) lType).getSize() == ((ArrayType) rType).getSize();
             }
 
-            if (isOk) {
-                binaryExpression.setType(new BooleanType());
-            } else {
+            if (!isOk) {
                 binaryExpression.setType(new NoType());
                 addError(l.getLine(), String.format("unsupported operand type for %s", binaryOperator));
             }
         }
 
         if (binaryOperator == BinaryOperator.assign) {
-            if (!isLeftValue(l)) {
-                addError(l.getLine(), "left side of assignment must be a valid lvalue");
-            }
-
             if (isOk) {
                 if (lType instanceof ArrayType && rType instanceof ArrayType && ((ArrayType) lType).getSize() != ((ArrayType) rType).getSize()) {
                     addError(l.getLine(), "operation assign requires equal array sizes");
@@ -364,7 +358,11 @@ public class TypeChecker extends VisitorImpl {
                 }
             } else {
                 binaryExpression.setType(new NoType());
-                addError(l.getLine(), String.format("unsupported operand type for %s", binaryOperator));
+                addError(l.getLine(), String.format("unsupported  operand type for %s", binaryOperator));
+            }
+
+            if (!isLeftValue(l)) {
+                addError(l.getLine(), "left side of assignment must be a valid lvalue");
             }
         }
 
@@ -452,7 +450,6 @@ public class TypeChecker extends VisitorImpl {
     }
 
     private void checkCondition(Expression e) {
-//        System.out.println("Check condition " + e.getType());
         boolean isOk = e.getType() instanceof BooleanType;
         if(!isOk) {
             addError(e.getLine(), "condition type must be Boolean");
@@ -478,8 +475,9 @@ public class TypeChecker extends VisitorImpl {
         areWeInFor++;
         visitStatement(loop.getInitialize());
 
-        visitExpr(loop.getCondition());
-        checkCondition(loop.getCondition());
+        Expression condition = loop.getCondition();
+        visitExpr(condition);
+        checkCondition(condition);
 
         visitStatement(loop.getUpdate());
 
@@ -580,7 +578,7 @@ public class TypeChecker extends VisitorImpl {
         visitExpr(l);
         visitExpr(r);
 
-//        if (l.getLine() == 14) {
+//        if (l.getLine() == 13) {
 //            System.out.println(l);
 //            System.out.println(l.getType());
 //            System.out.println(r);
@@ -588,12 +586,13 @@ public class TypeChecker extends VisitorImpl {
 //            System.out.println("after visit");
 //        }
 
-        if (!isLeftValue(l)) {
-            addError(l.getLine(), "left side of assignment must be a valid lvalue");
-        }
-
         Type lType = l.getType();
         Type rType = r.getType();
+
+         if(lType instanceof NoType || rType instanceof NoType) {
+             return;
+         }
+
         boolean isOk = canBeAssignedTo(lType, rType);
         if (isOk) {
             if (lType instanceof ArrayType && rType instanceof ArrayType && ((ArrayType) lType).getSize() != ((ArrayType) rType).getSize()) {
@@ -602,10 +601,14 @@ public class TypeChecker extends VisitorImpl {
         } else {
             addError(l.getLine(), "unsupported operand type for assign");
         }
+
+        if (!isLeftValue(l)) {
+            addError(l.getLine(), "left side of assignment must be a valid lvalue");
+        }
     }
 
     private boolean canBeAssignedTo(Type lType, Type rType) {
-        if (lType.toString().equals(rType.toString()) && !(lType instanceof NoType || rType instanceof NoType))
+        if (lType.toString().equals(rType.toString()))
             return true;
         ActorDeclaration actR = getActorDeclaration(rType.toString());
         while (actR != null) {
