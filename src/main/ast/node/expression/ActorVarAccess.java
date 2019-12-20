@@ -24,6 +24,12 @@ public class ActorVarAccess extends Expression {
     }
 
     @Override
+    public void setLine(int lineNum) {
+        super.setLine(lineNum);
+        this.self.setLine(lineNum);
+    }
+
+    @Override
     public String toString() {
          return "ActorVarAccess";
     }

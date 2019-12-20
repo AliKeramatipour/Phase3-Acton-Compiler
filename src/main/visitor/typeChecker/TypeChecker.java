@@ -13,6 +13,7 @@ import main.ast.node.expression.values.IntValue;
 import main.ast.node.expression.values.StringValue;
 import main.ast.node.statement.*;
 import main.ast.type.Type;
+import main.ast.type.actorType.ActorType;
 import main.ast.type.arrayType.ArrayType;
 import main.ast.type.noType.NoType;
 import main.ast.type.primitiveType.BooleanType;
@@ -43,8 +44,12 @@ public class TypeChecker extends VisitorImpl {
         nameErrors.add(s);
     }
 
-    private boolean hasValidType(String s) {
-        return s.equals("int") || s.equals("int[]") || s.equals("string") || s.equals("boolean") || s.equals("noType");
+    private boolean hasValidType(Type type) {
+        return type instanceof IntType
+                || type instanceof ArrayType
+                || type instanceof StringType
+                || type instanceof BooleanType
+                || type instanceof NoType;
     }
 
     private ActorDeclaration actorWeAreIn;
@@ -70,7 +75,6 @@ public class TypeChecker extends VisitorImpl {
     @Override
     public void visit(ActorDeclaration actorDeclaration) {
 
-        //pre settings
         try {
             actorWeAreIn = actorDeclaration;
             SymbolTable.top = ((SymbolTableActorItem) SymbolTable.root.get(SymbolTableActorItem.STARTKEY + actorDeclaration.getName().getName())).getActorSymbolTable();
@@ -79,7 +83,6 @@ public class TypeChecker extends VisitorImpl {
             addError(actorDeclaration.getName().getLine(), "ERROR CODE #0ff");
         }
 
-        //test if EXTEND is right
         if (actorDeclaration.getParentName() != null) {
             try {
                 ((SymbolTableActorItem) SymbolTable.root.get(SymbolTableActorItem.STARTKEY + actorDeclaration.getParentName().getName())).getActorSymbolTable();
@@ -88,7 +91,6 @@ public class TypeChecker extends VisitorImpl {
             }
         }
 
-        //know actors
         for (VarDeclaration tmp : actorDeclaration.getKnownActors()) {
             try {
                 SymbolTable.root.get(SymbolTableActorItem.STARTKEY + tmp.getType().toString());
@@ -103,9 +105,8 @@ public class TypeChecker extends VisitorImpl {
             }
         }
 
-        //actor vars
         for (VarDeclaration tmp : actorDeclaration.getActorVars()) {
-            if (!hasValidType(tmp.getType().toString()))
+            if (!hasValidType(tmp.getType()))
                 addError(tmp.getIdentifier().getLine(), "actor var must be int, string, boolean, or int[]");
         }
 
@@ -114,7 +115,6 @@ public class TypeChecker extends VisitorImpl {
             visit(actorDeclaration.getInitHandler());
         inInitHandler = false;
 
-        //msgHandler visit
         for (MsgHandlerDeclaration tmp : actorDeclaration.getMsgHandlers())
             visit(tmp);
 
@@ -141,7 +141,6 @@ public class TypeChecker extends VisitorImpl {
 
     @Override
     public void visit(Main mainActors) {
-        //TODO: implement appropriate visit functionality
 
         try {
             SymbolTable.top = ((SymbolTableMainItem) SymbolTable.root.get("Main_main")).getMainSymbolTable();
@@ -223,7 +222,7 @@ public class TypeChecker extends VisitorImpl {
             }
         }
         if (hasInitArgMatchError) {
-            addError(actorInstantiation.getLine(), "initial vars does not match with definition");
+            addError(actorInstantiation.getLine(), "arguments do not match with definition");
         }
 
     }
@@ -239,14 +238,21 @@ public class TypeChecker extends VisitorImpl {
 
     @Override
     public void visit(UnaryExpression unaryExpression) {
-        visitExpr(unaryExpression.getOperand());
+        Expression unaryExpressionOperand = unaryExpression.getOperand();
+        visitExpr(unaryExpressionOperand);
+
         UnaryOperator unaryOperator = unaryExpression.getUnaryOperator();
+        Type unaryExpressionOperandType = unaryExpressionOperand.getType();
+        if (unaryExpressionOperandType == null) {
+            unaryExpression.setType(new NoType());
+            return;
+        }
+
         if (unaryOperator == UnaryOperator.not) {
-            if (unaryExpression.getOperand().getType().toString().equals("boolean") ||
-                    unaryExpression.getOperand().getType().toString().equals("noType")) {
-                unaryExpression.setType(unaryExpression.getOperand().getType());
+            if (unaryExpressionOperandType instanceof BooleanType || unaryExpressionOperandType instanceof NoType) {
+                unaryExpression.setType(unaryExpressionOperandType);
             } else {
-                addError(unaryExpression.getLine(), "not a boolean type to use operator not");
+                addError(unaryExpression.getLine(), String.format("unsupported operand type for %s", unaryOperator));
                 unaryExpression.setType(new NoType());
             }
         } else if (unaryOperator == UnaryOperator.minus) {
@@ -258,11 +264,10 @@ public class TypeChecker extends VisitorImpl {
                 unaryOperatorType = "decrement";
             }
 
-            Expression unaryExpressionOperand = unaryExpression.getOperand();
-            boolean isOk = unaryExpressionOperand.getType() instanceof IntType;
+            boolean isOk = unaryExpressionOperandType instanceof IntType;
 
             if (isOk)
-                unaryExpression.setType(unaryExpressionOperand.getType());
+                unaryExpression.setType(unaryExpressionOperandType);
             else {
                 unaryExpression.setType(new NoType());
                 addError(unaryExpression.getLine(), String.format("unsupported operand type for %s", unaryOperatorType));
@@ -379,17 +384,20 @@ public class TypeChecker extends VisitorImpl {
 
     @Override
     public void visit(ArrayCall arrayCall) {
-        visitExpr(arrayCall.getArrayInstance());
-        if (!arrayCall.getArrayInstance().getType().toString().equals("int[]") && !arrayCall.getArrayInstance().getType().toString().equals("noType")) {
-            addError(arrayCall.getLine(), String.format("variable %s is not an array", ((Identifier) arrayCall.getArrayInstance()).getName()));
+        Expression instance = arrayCall.getArrayInstance();
+        visitExpr(instance);
+        Type instanceType = instance.getType();
+        if (!(instanceType instanceof ArrayType || instanceType instanceof NoType)) {
+            addError(arrayCall.getLine(), String.format("variable %s is not an array", ((Identifier) instance).getName()));
             arrayCall.setType(new NoType());
         }
 
-        visitExpr(arrayCall.getIndex());
-        if (!arrayCall.getIndex().getType().toString().equals("int") && !arrayCall.getIndex().getType().toString().equals("noType")) {
+        Expression index = arrayCall.getIndex();
+        visitExpr(index);
+        Type indexType = index.getType();
+        if (!(indexType instanceof IntType || indexType instanceof NoType)) {
             addError(arrayCall.getLine(), "integer value must be provided between [] of an array");
             arrayCall.setType(new NoType());
-
         }
 
         if (arrayCall.getType() == null)
@@ -398,10 +406,13 @@ public class TypeChecker extends VisitorImpl {
 
     @Override
     public void visit(ActorVarAccess actorVarAccess) {
-        //TODO: implement appropriate visit functionality
-        visitExpr(actorVarAccess.getVariable());
-        actorVarAccess.setType(actorVarAccess.getVariable().getType());
-
+        if (actorWeAreIn == null) {
+            actorVarAccess.getSelf().accept(this);
+        } else {
+            Identifier id = actorVarAccess.getVariable();
+            visitExpr(id);
+            actorVarAccess.setType(id.getType());
+        }
     }
 
     @Override
@@ -411,8 +422,6 @@ public class TypeChecker extends VisitorImpl {
             SymbolTableVariableItem getItem = (SymbolTableVariableItem) SymbolTable.top.get(searchVal);
             identifier.setType(getItem.getType());
         } catch (ItemNotFoundException exp) {
-//            if (identifier.getType() != null && identifier.getType().toString().equals("noType"))
-//                return;
             addError(identifier.getLine(), String.format("variable %s is not declared", identifier.getName()));
             identifier.setType(new NoType());
         }
@@ -421,9 +430,10 @@ public class TypeChecker extends VisitorImpl {
     @Override
     public void visit(Self self) {
         if (actorWeAreIn == null) {
-            addError(self.getLine(), "self should be called inside an actor declaration");
+            addError(self.getLine(), "self doesn't refer to any actor");
+        } else {
+            self.setType(actorWeAreIn.getName().getType());
         }
-        self.setType(actorWeAreIn.getName().getType());
     }
 
     @Override
@@ -434,7 +444,7 @@ public class TypeChecker extends VisitorImpl {
         if (actorWeAreIn == null) {
             addError(sender.getLine(), "sender should be called inside an actor declaration");
         }
-//        sender.setType(new NoType());
+        sender.setType(new ActorType(new Identifier("SENDER")));
     }
 
     @Override
@@ -467,13 +477,12 @@ public class TypeChecker extends VisitorImpl {
 
     @Override
     public void visit(Conditional conditional) {
-        //TODO: implement appropriate visit functionality
         visitExpr(conditional.getExpression());
 
         checkCondition(conditional.getExpression());
 
         visitStatement(conditional.getThenBody());
-        //if it has else
+
         if (conditional.getElseBody() != null)
             visitStatement(conditional.getElseBody());
 
@@ -512,26 +521,26 @@ public class TypeChecker extends VisitorImpl {
 
     @Override
     public void visit(MsgHandlerCall msgHandlerCall) {
-        //TODO: implement appropriate visit functionality
-        //check if there is such msgHandler
-        //avval bayad check konim ke bara kiio call karde ... self bude ya sender bude ya yek kase dg
 
+        Expression instance = msgHandlerCall.getInstance();
         msgHandlerCall.getInstance().setLine(msgHandlerCall.getLine());
-        visitExpr(msgHandlerCall.getInstance());
-        //551 BUG their bug :|
-        if (msgHandlerCall.getInstance() instanceof Identifier) {
-            Identifier id = (Identifier) msgHandlerCall.getInstance();
-            String whatType = getActorClassName(id.getName());
-            if (id.getType() instanceof NoType)
+
+        visitExpr(instance);
+
+        String handlerName = msgHandlerCall.getMsgHandlerName().getName();
+        if (instance instanceof Identifier) {
+            Identifier actorId = (Identifier) instance;
+            if (actorId.getType() instanceof NoType)
                 return;
+
+            String whatType = getActorClassName(actorId.getName());
             if (whatType.equals("")) {
-                addError(id.getLine(), String.format("variable %s is not callable", id.getName()));
+                addError(actorId.getLine(), String.format("variable %s is not callable", actorId.getName()));
             } else {
                 try {
                     SymbolTableHandlerItem tmp = (SymbolTableHandlerItem) (((SymbolTableActorItem) SymbolTable.root.get(SymbolTableActorItem.STARTKEY + whatType)).getActorSymbolTable().get(SymbolTableHandlerItem.STARTKEY + msgHandlerCall.getMsgHandlerName().getName()));
-                    // hala bayad validity field hayy ke pass mide ro barresi konim
-                    ActorDeclaration thisActor = getActorDeclaration(whatType);
                     MsgHandlerDeclaration thisMsgHandler = (MsgHandlerDeclaration) tmp.getHandlerDeclaration();
+
                     if (msgHandlerCall.getArgs().size() != thisMsgHandler.getArgs().size()) {
                         addError(msgHandlerCall.getLine(), "arguments do not match with definition");
                         return;
@@ -539,61 +548,53 @@ public class TypeChecker extends VisitorImpl {
                     for (int i = 0; i < msgHandlerCall.getArgs().size(); i++) {
                         Expression msgHandlerArg = msgHandlerCall.getArgs().get(i);
                         VarDeclaration varDec = thisMsgHandler.getArgs().get(i);
+
                         visitExpr(msgHandlerArg);
                         visit(varDec);
 
-                        String first = msgHandlerArg.getType().toString();
-                        String second = varDec.getType().toString();
+                        Type first = msgHandlerArg.getType();
+                        Type second = varDec.getType();
 
-                        if (first.equals("noType") || second.equals("noType"))
+                        if (first instanceof NoType || second instanceof NoType)
                             continue;
-                        if (!first.equals(second)) {
+                        if (!first.toString().equals(second.toString())) {
                             addError(msgHandlerArg.getLine(), "arguments do not match with definition");
-                            return;
                         }
                     }
                 } catch (ItemNotFoundException exp) {
-                    addError(id.getLine(), String.format("there is no msghandler name %s in actor %s", msgHandlerCall.getMsgHandlerName().getName(), id.getName()));
+                    addError(actorId.getLine(), String.format("there is no msghandler with name %s in actor %s", handlerName, actorId.getName()));
                 }
             }
-        } else if (msgHandlerCall.getInstance() instanceof Self) {
-//            Self id = (Self) msgHandlerCall.getInstance();
-            String s = msgHandlerCall.getMsgHandlerName().getName();
+        } else if (instance instanceof Self) {
             try {
-                SymbolTable.top.get(SymbolTableHandlerItem.STARTKEY + s);
+                SymbolTable.top.get(SymbolTableHandlerItem.STARTKEY + handlerName);
             } catch (ItemNotFoundException exp) {
-                addError(msgHandlerCall.getLine(), String.format("there is no msghandler name %s in this actor", msgHandlerCall.getMsgHandlerName().getName()));
+                addError(msgHandlerCall.getLine(), String.format("there is no msghandler named %s in actor %s", handlerName, actorWeAreIn.getName().getName()));
             }
-//       } else if (msgHandlerCall.getInstance() instanceof Sender) {
-//            Sender id = (Sender) msgHandlerCall.getInstance();
-            //DO nothing
         }
     }
 
     @Override
     public void visit(Print print) {
-        visitExpr(print.getArg());
-        if (print.getArg().getType() == null || !hasValidType(print.getArg().getType().toString())) {
+        Expression arg = print.getArg();
+        visitExpr(arg);
+        if (!hasValidType(arg.getType())) {
             addError(print.getLine(), "unsupported type for print");
         }
     }
 
     @Override
     public void visit(Assign assign) {
-        //TODO: implement appropriate visit functionality
         Expression l = assign.getlValue();
         Expression r = assign.getrValue();
 
         visitExpr(l);
         visitExpr(r);
 
-//        if (l.getLine() == 13) {
-//            System.out.println(l);
-//            System.out.println(l.getType());
-//            System.out.println(r);
-//            System.out.println(r.getType());
-//            System.out.println("after visit");
-//        }
+        if (!isLeftValue(l)) {
+            addError(l.getLine(), "left side of assignment must be a valid lvalue");
+            return;
+        }
 
         Type lType = l.getType();
         Type rType = r.getType();
@@ -609,10 +610,6 @@ public class TypeChecker extends VisitorImpl {
             }
         } else {
             addError(l.getLine(), "unsupported operand type for assign");
-        }
-
-        if (!isLeftValue(l)) {
-            addError(l.getLine(), "left side of assignment must be a valid lvalue");
         }
     }
 

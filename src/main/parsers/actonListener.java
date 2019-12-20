@@ -1,17 +1,17 @@
-// Generated from /Users/alikeramatipour/IdeaProjects/Phase3/src/antlr/acton.g4 by ANTLR 4.7.2
+// Generated from /home/amir/IdeaProjects/phase3-acton-compiler/src/acton.g4 by ANTLR 4.7.2
 
-    package main.parsers;
-    import main.ast.node.*;
-    import main.ast.node.declaration.*;
-    import main.ast.node.declaration.handler.*;
-    import main.ast.node.statement.*;
-    import main.ast.node.expression.*;
-    import main.ast.node.expression.operators.*;
-    import main.ast.node.expression.values.*;
-    import main.ast.type.primitiveType.*;
-    import main.ast.type.arrayType.*;
-    import main.ast.type.actorType.*;
-    import main.ast.type.*;
+package main.parsers;
+import main.ast.node.*;
+import main.ast.node.declaration.*;
+import main.ast.node.declaration.handler.*;
+import main.ast.node.statement.*;
+import main.ast.node.expression.*;
+import main.ast.node.expression.operators.*;
+import main.ast.node.expression.values.*;
+import main.ast.type.primitiveType.*;
+import main.ast.type.arrayType.*;
+import main.ast.type.actorType.*;
+import main.ast.type.*;
 
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 

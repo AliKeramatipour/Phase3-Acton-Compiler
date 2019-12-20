@@ -1,17 +1,18 @@
 grammar acton;
 
 @header{
-    import main.ast.node.*;
-    import main.ast.node.declaration.*;
-    import main.ast.node.declaration.handler.*;
-    import main.ast.node.statement.*;
-    import main.ast.node.expression.*;
-    import main.ast.node.expression.operators.*;
-    import main.ast.node.expression.values.*;
-    import main.ast.type.primitiveType.*;
-    import main.ast.type.arrayType.*;
-    import main.ast.type.actorType.*;
-    import main.ast.type.*;
+package main.parsers;
+import main.ast.node.*;
+import main.ast.node.declaration.*;
+import main.ast.node.declaration.handler.*;
+import main.ast.node.statement.*;
+import main.ast.node.expression.*;
+import main.ast.node.expression.operators.*;
+import main.ast.node.expression.values.*;
+import main.ast.type.primitiveType.*;
+import main.ast.type.arrayType.*;
+import main.ast.type.actorType.*;
+import main.ast.type.*;
 }
 
 program returns [Program p]
@@ -237,8 +238,7 @@ arrayCall returns [ArrayCall arrCall]
     ;
 
 actorVarAccess returns [ActorVarAccess av]
-    :   self = SELF {Self self = new Self(); self.setLine($self.getLine());}
-        DOT id = identifier {$av = new ActorVarAccess($id.id); $av.setLine($self.getLine());}
+    :   SELF DOT id = identifier {$av = new ActorVarAccess($id.id); $av.setLine($SELF.getLine());}
     ;
 
 expressionList returns [ArrayList <Expression> expressions]
