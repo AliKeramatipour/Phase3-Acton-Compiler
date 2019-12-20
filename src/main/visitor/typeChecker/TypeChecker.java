@@ -24,12 +24,10 @@ import main.symbolTable.symbolTableVariableItem.SymbolTableVariableItem;
 import main.visitor.VisitorImpl;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 
 public class TypeChecker extends VisitorImpl {
 
-    public ArrayList<String> nameErrors;
+    private ArrayList<String> nameErrors;
 
     public TypeChecker() {
         nameErrors = new ArrayList<>();
@@ -39,47 +37,40 @@ public class TypeChecker extends VisitorImpl {
         return nameErrors.size();
     }
 
-    public void addError(int line, String msg) {
+    private void addError(int line, String msg) {
         String s = String.format("Line:%d:%s", line, msg);
         System.out.println(s);
         nameErrors.add(s);
     }
 
     private boolean hasValidType(String s) {
-        if (s.equals("int") || s.equals("int[]") || s.equals("string") || s.equals("boolean") || s.equals("noType"))
-            return true;
-        return false;
+        return s.equals("int") || s.equals("int[]") || s.equals("string") || s.equals("boolean") || s.equals("noType");
     }
 
-    private String isSelfSenderOrIdentifier;
     private ActorDeclaration actorWeAreIn;
     private int areWeInFor;
     private boolean inInitHandler;
     private ArrayList<ActorDeclaration> actorDecs;
 
-    private String getActorClassName(String actorname) {
+    private String getActorClassName(String actorName) {
         for (VarDeclaration tmp : actorWeAreIn.getKnownActors())
-            if (tmp.getIdentifier().getName().equals(actorname))
+            if (tmp.getIdentifier().getName().equals(actorName))
                 return tmp.getType().toString();
         return "";
-    }
-
-    private void printTopSymbolTable() {
-        System.out.println(Arrays.asList(SymbolTable.top.getSymbolTableItems()));
     }
 
     @Override
     public void visit(Program program) {
         actorDecs = program.getActors();
-        for (ActorDeclaration actordec : actorDecs)
-            visit(actordec);
+        for (ActorDeclaration actorDec : actorDecs)
+            visit(actorDec);
         visit(program.getMain());
     }
 
     @Override
     public void visit(ActorDeclaration actorDeclaration) {
 
-        //presettings
+        //pre settings
         try {
             actorWeAreIn = actorDeclaration;
             SymbolTable.top = ((SymbolTableActorItem) SymbolTable.root.get(SymbolTableActorItem.STARTKEY + actorDeclaration.getName().getName())).getActorSymbolTable();
@@ -112,9 +103,9 @@ public class TypeChecker extends VisitorImpl {
             }
         }
 
-        //actorvars
+        //actor vars
         for (VarDeclaration tmp : actorDeclaration.getActorVars()) {
-            if (hasValidType(tmp.getType().toString()) == false)
+            if (!hasValidType(tmp.getType().toString()))
                 addError(tmp.getIdentifier().getLine(), "actor var must be int, string, boolean, or int[]");
         }
 
@@ -176,15 +167,14 @@ public class TypeChecker extends VisitorImpl {
         //WE SHOULD ALSO GET ITS PARENTS KNOWNACTORS
         ActorDeclaration par = thisActor;
         while (par != null) {
-            for (VarDeclaration knownactor : par.getKnownActors())
-                allKnownActors.add(knownactor);
+            allKnownActors.addAll(par.getKnownActors());
 
             if (!par.hasParent)
                 break;
             par = getActorDeclaration(par.getParentName().getName());
         }
         if (allKnownActors.size() != actorInstantiation.getKnownActors().size()) {
-            addError(actorInstantiation.getLine(), "knownactors does not match with definition");
+            addError(actorInstantiation.getLine(), "knownactors do not match with definition");
             return;
         }
 
@@ -196,7 +186,7 @@ public class TypeChecker extends VisitorImpl {
             if (first.equals("noType") || second.equals("noType"))
                 return;
             if (!first.equals(second)) {
-                addError(actorInstantiation.getLine(), "knownactors does not match with definition");
+                addError(actorInstantiation.getLine(), "knownactors do not match with definition");
                 return;
             }
         }
@@ -240,29 +230,38 @@ public class TypeChecker extends VisitorImpl {
     @Override
     public void visit(UnaryExpression unaryExpression) {
         visitExpr(unaryExpression.getOperand());
-        if (unaryExpression.getUnaryOperator() == UnaryOperator.not) {
-            if (unaryExpression.getOperand().getType().toString() == "boolean" ||
-                    unaryExpression.getOperand().getType().toString() == "noType") {
+        UnaryOperator unaryOperator = unaryExpression.getUnaryOperator();
+        if (unaryOperator == UnaryOperator.not) {
+            if (unaryExpression.getOperand().getType().toString().equals("boolean") ||
+                    unaryExpression.getOperand().getType().toString().equals("noType")) {
                 unaryExpression.setType(unaryExpression.getOperand().getType());
             } else {
                 addError(unaryExpression.getLine(), "not a boolean type to use operator not");
                 unaryExpression.setType(new NoType());
             }
-            return;
-        }
-        boolean isTrue = false;
-        if (unaryExpression.getOperand() instanceof Identifier) {
-            Identifier exp = (Identifier) unaryExpression.getOperand();
-            if (exp.getType().toString().equals("int") || exp.getType().toString().equals("int[]") || exp.getType().toString().equals("noType"))
-                isTrue = true;
-        } else if (unaryExpression.getOperand() instanceof ArrayCall)
-            isTrue = true;
+        } else if (unaryOperator == UnaryOperator.minus) {
+        } else {
+            String unaryOperatorType = "";
+            if (unaryOperator == UnaryOperator.preinc || unaryOperator == UnaryOperator.postinc) {
+                unaryOperatorType = "increment";
+            } else if (unaryOperator == UnaryOperator.predec || unaryOperator == UnaryOperator.postdec) {
+                unaryOperatorType = "decrement";
+            }
 
-        if (isTrue)
-            unaryExpression.setType(unaryExpression.getOperand().getType());
-        else {
-            unaryExpression.setType(new NoType());
-            addError(unaryExpression.getLine(), "lvalue required as increment/decrement operand");
+            Expression unaryExpressionOperand = unaryExpression.getOperand();
+            boolean isOk = unaryExpressionOperand.getType() instanceof IntType;
+
+            if (isOk)
+                unaryExpression.setType(unaryExpressionOperand.getType());
+            else {
+                unaryExpression.setType(new NoType());
+                addError(unaryExpression.getLine(), String.format("unsupported operand type for %s", unaryOperatorType));
+            }
+
+            if (!isLeftValue(unaryExpressionOperand)) {
+                addError(unaryExpression.getLine(), String.format("lvalue required as %s operand", unaryOperatorType));
+            }
+
         }
     }
 
@@ -273,51 +272,61 @@ public class TypeChecker extends VisitorImpl {
         visitExpr(l);
         visitExpr(r);
 
-        if (binaryExpression.getBinaryOperator() == BinaryOperator.add ||
-                binaryExpression.getBinaryOperator() == BinaryOperator.mult ||
-                binaryExpression.getBinaryOperator() == BinaryOperator.sub ||
-                binaryExpression.getBinaryOperator() == BinaryOperator.div ||
-                binaryExpression.getBinaryOperator() == BinaryOperator.mod
+        BinaryOperator binaryOperator = binaryExpression.getBinaryOperator();
+        Type lType = l.getType();
+        Type rType = r.getType();
+
+        if (binaryOperator == BinaryOperator.add ||
+                binaryOperator == BinaryOperator.mult ||
+                binaryOperator == BinaryOperator.sub ||
+                binaryOperator == BinaryOperator.div ||
+                binaryOperator == BinaryOperator.mod
         ) {
-            if (!(l.getType().toString().equals("int")) && !(l.getType().toString().equals("noType"))) {
-                addError(l.getLine(), String.format("unsupported operand type for %s", binaryExpression.getBinaryOperator()));
-                binaryExpression.setType(new NoType());
-            } else if (!(r.getType().toString().equals("int")) && !(r.getType().toString().equals("noType"))) {
-                addError(r.getLine(), String.format("unsupported operand type for %s", binaryExpression.getBinaryOperator()));
-                binaryExpression.setType(new NoType());
-            } else if (r.getType().toString().equals("noType") || l.getType().toString().equals("noType")) {
-                binaryExpression.setType(new NoType());
-            } else {
+            boolean isLTypeOk = lType instanceof IntType;
+            boolean isRTypeOk = rType instanceof IntType;
+            boolean isOk =  isLTypeOk && isRTypeOk;
+            if (isOk) {
                 binaryExpression.setType(l.getType());
+            } else {
+                binaryExpression.setType(new NoType());
+                if (!isLTypeOk) {
+                    addError(l.getLine(), String.format("unsupported operand type for %s", binaryOperator));
+                }
+                if (!isRTypeOk) {
+                    addError(r.getLine(), String.format("unsupported operand type for %s", binaryOperator));
+                }
             }
         }
 
-        if (binaryExpression.getBinaryOperator() == BinaryOperator.gt ||
-                binaryExpression.getBinaryOperator() == BinaryOperator.lt
+        if (binaryOperator == BinaryOperator.gt ||
+                binaryOperator == BinaryOperator.lt
         ) {
 
-            if (!(l.getType().toString().equals("int")) && !(l.getType().toString().equals("noType"))) {
-                addError(l.getLine(), String.format("unsupported operand type for %s", binaryExpression.getBinaryOperator()));
-                binaryExpression.setType(new NoType());
-            } else if (!(r.getType().toString().equals("int")) && !(r.getType().toString().equals("noType"))) {
-                addError(r.getLine(), String.format("unsupported operand type for %s", binaryExpression.getBinaryOperator()));
-                binaryExpression.setType(new NoType());
-            } else if (r.getType().toString().equals("noType") || l.getType().toString().equals("noType")) {
-                binaryExpression.setType(new NoType());
-            } else {
+            boolean isLTypeOk = lType instanceof IntType;
+            boolean isRTypeOk = rType instanceof IntType;
+            boolean isOk =  isLTypeOk && isRTypeOk;
+            if (isOk) {
                 binaryExpression.setType(new BooleanType());
+            } else {
+                binaryExpression.setType(new NoType());
+                if (!isLTypeOk) {
+                    addError(l.getLine(), String.format("unsupported operand type for %s", binaryOperator));
+                }
+                if (!isRTypeOk) {
+                    addError(r.getLine(), String.format("unsupported operand type for %s", binaryOperator));
+                }
             }
         }
 
 
-        if (binaryExpression.getBinaryOperator() == BinaryOperator.or ||
-                binaryExpression.getBinaryOperator() == BinaryOperator.and
+        if (binaryOperator == BinaryOperator.or ||
+                binaryOperator == BinaryOperator.and
         ) {
             if (!(l.getType().toString().equals("boolean")) && !(l.getType().toString().equals("noType"))) {
-                addError(l.getLine(), String.format("unsupported operand type for %s", binaryExpression.getBinaryOperator()));
+                addError(l.getLine(), String.format("unsupported operand type for %s", binaryOperator));
                 binaryExpression.setType(new NoType());
             } else if (!(r.getType().toString().equals("boolean")) && !(r.getType().toString().equals("noType"))) {
-                addError(r.getLine(), String.format("unsupported operand type for %s", binaryExpression.getBinaryOperator()));
+                addError(r.getLine(), String.format("unsupported operand type for %s", binaryOperator));
                 binaryExpression.setType(new NoType());
             } else if (r.getType().toString().equals("noType") || l.getType().toString().equals("noType"))
                 binaryExpression.setType(new NoType());
@@ -325,37 +334,37 @@ public class TypeChecker extends VisitorImpl {
                 binaryExpression.setType(l.getType());
         }
 
-        if (binaryExpression.getBinaryOperator() == BinaryOperator.eq ||
-                binaryExpression.getBinaryOperator() == BinaryOperator.neq
+        boolean isOk = lType.toString().equals(rType.toString()) && !(lType instanceof NoType || rType instanceof NoType);
+        if (binaryOperator == BinaryOperator.eq ||
+                binaryOperator == BinaryOperator.neq
         ) {
-            if (l.getType().toString().equals("noType") || r.getType().toString().equals("noType")) {
-                binaryExpression.setType(new NoType());
-            } else if (!l.getType().toString().equals(r.getType().toString())) {
-                addError(l.getLine(), String.format("unsupported operand type for %s", binaryExpression.getBinaryOperator()));
-                binaryExpression.setType(new NoType());
-            } else if (l.getType().toString().equals("int[]") || r.getType().toString().equals("int[]")) {
-                binaryExpression.setType(new NoType());
-                addError(l.getLine(), String.format("unsupported operand type for %s", binaryExpression.getBinaryOperator()));
+            if (lType instanceof ArrayType && rType instanceof ArrayType) {
+                isOk = ((ArrayType) lType).getSize() == ((ArrayType) rType).getSize();
+            }
+
+            if (isOk) {
+                binaryExpression.setType(new BooleanType());
             } else {
-                binaryExpression.setType(l.getType());
+                binaryExpression.setType(new NoType());
+                addError(l.getLine(), String.format("unsupported operand type for %s", binaryOperator));
             }
         }
 
-        if (binaryExpression.getBinaryOperator() == BinaryOperator.assign
-        ) {
-            if (!(l instanceof Identifier)) {
-                binaryExpression.setType(new NoType());
+        if (binaryOperator == BinaryOperator.assign) {
+            if (!isLeftValue(l)) {
                 addError(l.getLine(), "left side of assignment must be a valid lvalue");
-            } else if (l.getType().toString().equals("noType") || r.getType().toString().equals("noType")) {
-                binaryExpression.setType(new NoType());
-            } else if (!l.getType().toString().equals(r.getType().toString())) {
-                addError(l.getLine(), "left side of assignment must have same type of right side");
-                binaryExpression.setType(new NoType());
-            } else if (l.getType().toString().equals("int[]") || r.getType().toString().equals("int[]")) {
-                binaryExpression.setType(new NoType());
-                addError(l.getLine(), String.format("unsupported operand type for %s", binaryExpression.getBinaryOperator()));
+            }
+
+            if (isOk) {
+                if (lType instanceof ArrayType && rType instanceof ArrayType && ((ArrayType) lType).getSize() != ((ArrayType) rType).getSize()) {
+                    addError(l.getLine(), "operation assign requires equal array sizes");
+                    binaryExpression.setType(new NoType());
+                } else {
+                    binaryExpression.setType(l.getType());
+                }
             } else {
-                binaryExpression.setType(l.getType());
+                binaryExpression.setType(new NoType());
+                addError(l.getLine(), String.format("unsupported operand type for %s", binaryOperator));
             }
         }
 
@@ -370,7 +379,7 @@ public class TypeChecker extends VisitorImpl {
         }
 
         visitExpr(arrayCall.getIndex());
-        if (arrayCall.getIndex().getType().toString() != "int" && arrayCall.getIndex().getType().toString() != "noType") {
+        if (!arrayCall.getIndex().getType().toString().equals("int") && !arrayCall.getIndex().getType().toString().equals("noType")) {
             addError(arrayCall.getLine(), "integer value must be provided between [] of an array");
             arrayCall.setType(new NoType());
 
@@ -390,7 +399,6 @@ public class TypeChecker extends VisitorImpl {
 
     @Override
     public void visit(Identifier identifier) {
-        isSelfSenderOrIdentifier = "identifier";
         String searchVal = SymbolTableVariableItem.STARTKEY + identifier.getName();
         try {
             SymbolTableVariableItem getItem = (SymbolTableVariableItem) SymbolTable.top.get(searchVal);
@@ -405,7 +413,6 @@ public class TypeChecker extends VisitorImpl {
 
     @Override
     public void visit(Self self) {
-        isSelfSenderOrIdentifier = "self";
         if (actorWeAreIn == null) {
             addError(self.getLine(), "self should be called inside an actor declaration");
         }
@@ -414,7 +421,6 @@ public class TypeChecker extends VisitorImpl {
 
     @Override
     public void visit(Sender sender) {
-        isSelfSenderOrIdentifier = "sender";
         if (inInitHandler) {
             addError(sender.getLine(), "no sender in initial msghandler");
         }
@@ -445,29 +451,39 @@ public class TypeChecker extends VisitorImpl {
             visitStatement(tmp);
     }
 
+    private void checkCondition(Expression e) {
+//        System.out.println("Check condition " + e.getType());
+        boolean isOk = e.getType() instanceof BooleanType;
+        if(!isOk) {
+            addError(e.getLine(), "condition type must be Boolean");
+        }
+    }
+
     @Override
     public void visit(Conditional conditional) {
         //TODO: implement appropriate visit functionality
         visitExpr(conditional.getExpression());
+
+        checkCondition(conditional.getExpression());
+
         visitStatement(conditional.getThenBody());
         //if it has else
         if (conditional.getElseBody() != null)
             visitStatement(conditional.getElseBody());
 
-        if (conditional.getExpression().getType().toString().equals("boolean") == false)
-            addError(conditional.getExpression().getLine(), "condition type must be Boolean");
     }
 
     @Override
     public void visit(For loop) {
         areWeInFor++;
         visitStatement(loop.getInitialize());
+
         visitExpr(loop.getCondition());
-        if (loop.getCondition() == null) {
-            addError(loop.getCondition().getLine(), "no condition declared");
-        } else if (loop.getCondition().getType().toString().equals("boolean") == false)
-            addError(loop.getCondition().getLine(), "condition type must be Boolean");
+        checkCondition(loop.getCondition());
+
         visitStatement(loop.getUpdate());
+
+        visitStatement(loop.getBody());
         areWeInFor--;
     }
 
@@ -492,13 +508,15 @@ public class TypeChecker extends VisitorImpl {
         //TODO: implement appropriate visit functionality
         //check if there is such msgHandler
         //avval bayad check konim ke bara kiio call karde ... self bude ya sender bude ya yek kase dg
+
         msgHandlerCall.getInstance().setLine(msgHandlerCall.getLine());
         visitExpr(msgHandlerCall.getInstance());
         //551 BUG their bug :|
         if (msgHandlerCall.getInstance() instanceof Identifier) {
             Identifier id = (Identifier) msgHandlerCall.getInstance();
             String whatType = getActorClassName(id.getName());
-            if (id.getType().toString() == "noType") return;
+            if (id.getType() instanceof NoType)
+                return;
             if (whatType.equals("")) {
                 addError(id.getLine(), String.format("variable %s is not callable", id.getName()));
             } else {
@@ -532,26 +550,17 @@ public class TypeChecker extends VisitorImpl {
                 }
             }
         } else if (msgHandlerCall.getInstance() instanceof Self) {
-            Self id = (Self) msgHandlerCall.getInstance();
+//            Self id = (Self) msgHandlerCall.getInstance();
             String s = msgHandlerCall.getMsgHandlerName().getName();
             try {
                 SymbolTable.top.get(SymbolTableHandlerItem.STARTKEY + s);
             } catch (ItemNotFoundException exp) {
                 addError(msgHandlerCall.getLine(), String.format("there is no msghandler name %s in this actor", msgHandlerCall.getMsgHandlerName().getName()));
             }
-        } else if (msgHandlerCall.getInstance() instanceof Sender) {
-            Sender id = (Sender) msgHandlerCall.getInstance();
+//       } else if (msgHandlerCall.getInstance() instanceof Sender) {
+//            Sender id = (Sender) msgHandlerCall.getInstance();
             //DO nothing
         }
-    }
-
-    private MsgHandlerDeclaration findMsgHandlerDec(ActorDeclaration thisActor, String name) {
-        ArrayList<MsgHandlerDeclaration> msgHandlers = thisActor.getMsgHandlers();
-        for (MsgHandlerDeclaration msg : msgHandlers) {
-            if (msg.getName().getName().equals(name))
-                return msg;
-        }
-        return null;
     }
 
     @Override
@@ -571,33 +580,45 @@ public class TypeChecker extends VisitorImpl {
         visitExpr(l);
         visitExpr(r);
 
-        if (!(l instanceof Identifier)) {
+//        if (l.getLine() == 14) {
+//            System.out.println(l);
+//            System.out.println(l.getType());
+//            System.out.println(r);
+//            System.out.println(r.getType());
+//            System.out.println("after visit");
+//        }
+
+        if (!isLeftValue(l)) {
             addError(l.getLine(), "left side of assignment must be a valid lvalue");
         }
 
-        if (l.getType() == null || l.getType() instanceof NoType) {
-            return;
-        }
-        if (r.getType() == null || r.getType() instanceof NoType) {
-            return;
-        }
-        if (!canNotBeAssignedTo(l.getType().toString(), r.getType().toString())) {
-            addError(l.getLine(), "left side of assignment must have same type of right side or be a subtype");
-        } else if (l.getType().toString().equals("int[]") || r.getType().toString().equals("int[]")) {
-            addError(l.getLine(), "arrays can not be assigned");
+        Type lType = l.getType();
+        Type rType = r.getType();
+        boolean isOk = canBeAssignedTo(lType, rType);
+        if (isOk) {
+            if (lType instanceof ArrayType && rType instanceof ArrayType && ((ArrayType) lType).getSize() != ((ArrayType) rType).getSize()) {
+                addError(l.getLine(), "operation assign requires equal array sizes");
+            }
+        } else {
+            addError(l.getLine(), "unsupported operand type for assign");
         }
     }
 
-    private boolean canNotBeAssignedTo(String l, String r) {
-        if (l.equals(r)) return true;
-        ActorDeclaration actR = getActorDeclaration(r);
+    private boolean canBeAssignedTo(Type lType, Type rType) {
+        if (lType.toString().equals(rType.toString()) && !(lType instanceof NoType || rType instanceof NoType))
+            return true;
+        ActorDeclaration actR = getActorDeclaration(rType.toString());
         while (actR != null) {
-            if (actR.getName().getName().equals(l))
+            if (actR.getName().getName().equals(lType.toString()))
                 return true;
             if (actR.getParentName() == null)
                 break;
             actR = getActorDeclaration(actR.getParentName().getName());
         }
         return false;
+    }
+
+    private boolean isLeftValue(Expression e) {
+        return e instanceof Identifier || e instanceof ArrayCall || e instanceof ActorVarAccess;
     }
 }
