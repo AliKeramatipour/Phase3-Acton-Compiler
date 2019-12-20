@@ -174,10 +174,12 @@ public class TypeChecker extends VisitorImpl {
             hasKnownActorMatchError = true;
         }
 
+        for (Identifier id : knownActors) {
+            visit(id);
+        }
         int minSize = Math.min(knownActors.size(), allKnownActors.size());
         for (int i = 0; i < minSize; i++) {
             Identifier id = knownActors.get(i);
-            visit(id);
 
             Type first = id.getType();
             Type second = allKnownActors.get(i).getType();
@@ -194,13 +196,15 @@ public class TypeChecker extends VisitorImpl {
 
         boolean hasInitArgMatchError = false;
         ArrayList<Expression> initArgs = actorInstantiation.getInitArgs();
+        for (Expression exp : initArgs) {
+            visitExpr(exp);
+        }
+
         InitHandlerDeclaration initHandlerDeclaration = thisActor.getInitHandler();
         if (initHandlerDeclaration == null) {
             if (actorInstantiation.getInitArgs().size() != 0)
                 hasInitArgMatchError = true;
         } else {
-
-
             ArrayList<VarDeclaration> initHandlerArgs = initHandlerDeclaration.getArgs();
             if (initArgs.size() != initHandlerArgs.size()) {
                 hasInitArgMatchError = true;
@@ -208,10 +212,9 @@ public class TypeChecker extends VisitorImpl {
 
             minSize = Math.min(initArgs.size(), initHandlerArgs.size());
             for (int i = 0; i < minSize; i++) {
-                Expression id = initArgs.get(i);
-                visitExpr(id);
+                Expression exp = initArgs.get(i);
 
-                Type first = id.getType();
+                Type first = exp.getType();
                 Type second = initHandlerArgs.get(i).getType();
                 if (first instanceof NoType || second instanceof NoType)
                     continue;
@@ -300,14 +303,15 @@ public class TypeChecker extends VisitorImpl {
             boolean isLTypeOk = lType instanceof IntType;
             boolean isRTypeOk = rType instanceof IntType;
             boolean isOk = isLTypeOk && isRTypeOk;
+
             if (isOk) {
                 binaryExpression.setType(l.getType());
             } else {
                 binaryExpression.setType(new NoType());
+
                 if (!isLTypeOk) {
                     addError(l.getLine(), String.format("unsupported operand type for %s", binaryOperator));
-                }
-                if (!isRTypeOk) {
+                } else {
                     addError(r.getLine(), String.format("unsupported operand type for %s", binaryOperator));
                 }
             }
@@ -323,8 +327,7 @@ public class TypeChecker extends VisitorImpl {
 
             if (!isLTypeOk) {
                 addError(l.getLine(), String.format("unsupported operand type for %s", binaryOperator));
-            }
-            if (!isRTypeOk) {
+            } else if (!isRTypeOk) {
                 addError(r.getLine(), String.format("unsupported operand type for %s", binaryOperator));
             }
 
@@ -334,16 +337,16 @@ public class TypeChecker extends VisitorImpl {
         if (binaryOperator == BinaryOperator.or ||
                 binaryOperator == BinaryOperator.and
         ) {
-            if (!(l.getType().toString().equals("boolean")) && !(l.getType().toString().equals("noType"))) {
+            binaryExpression.setType(new BooleanType());
+
+            boolean isLTypeOk = lType instanceof BooleanType;
+            boolean isRTypeOk = rType instanceof BooleanType;
+
+            if (!isLTypeOk) {
                 addError(l.getLine(), String.format("unsupported operand type for %s", binaryOperator));
-                binaryExpression.setType(new NoType());
-            } else if (!(r.getType().toString().equals("boolean")) && !(r.getType().toString().equals("noType"))) {
+            } else if (!isRTypeOk) {
                 addError(r.getLine(), String.format("unsupported operand type for %s", binaryOperator));
-                binaryExpression.setType(new NoType());
-            } else if (r.getType().toString().equals("noType") || l.getType().toString().equals("noType"))
-                binaryExpression.setType(new NoType());
-            else
-                binaryExpression.setType(l.getType());
+            }
         }
 
         boolean isOk = lType.toString().equals(rType.toString()) && !(lType instanceof NoType || rType instanceof NoType);
@@ -471,7 +474,7 @@ public class TypeChecker extends VisitorImpl {
     private void checkCondition(Expression e) {
         boolean isOk = e.getType() instanceof BooleanType;
         if (!isOk) {
-            addError(e.getLine(), "condition type must be Boolean");
+            addError(e.getLine(), "condition type must be boolean");
         }
     }
 
