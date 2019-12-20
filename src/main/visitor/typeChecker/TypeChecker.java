@@ -148,7 +148,7 @@ public class TypeChecker extends VisitorImpl {
             try {
                 SymbolTable.root.get(SymbolTableActorItem.STARTKEY + tmp.getType().toString());
             } catch (ItemNotFoundException exp) {
-                addError(tmp.getIdentifier().getLine(), "actor type " + tmp.getType().toString() + " not declared");
+                addError(tmp.getIdentifier().getLine(), String.format("actor type %s not declared", tmp.getType().toString()));
                 try {
                     SymbolTableVariableItem test = (SymbolTableVariableItem) SymbolTable.top.get(SymbolTableVariableItem.STARTKEY + tmp.getIdentifier().getName());
                     test.setType(new NoType());
@@ -324,10 +324,10 @@ public class TypeChecker extends VisitorImpl {
                 binaryExpression.getBinaryOperator() == BinaryOperator.mod
         ) {
             if (!(l.getType().toString().equals("int")) && !(l.getType().toString().equals("noType"))) {
-                addError(l.getLine(), "unsupported operand type for " + binaryExpression.getBinaryOperator());
+                addError(l.getLine(), String.format("unsupported operand type for %s", binaryExpression.getBinaryOperator()));
                 binaryExpression.setType(new NoType());
             } else if (!(r.getType().toString().equals("int")) && !(r.getType().toString().equals("noType"))) {
-                addError(r.getLine(), "unsupported operand type for " + binaryExpression.getBinaryOperator());
+                addError(r.getLine(), String.format("unsupported operand type for %s", binaryExpression.getBinaryOperator()));
                 binaryExpression.setType(new NoType());
             } else if (r.getType().toString().equals("noType") || l.getType().toString().equals("noType")) {
                 binaryExpression.setType(new NoType());
@@ -341,10 +341,10 @@ public class TypeChecker extends VisitorImpl {
         ) {
 
             if (!(l.getType().toString().equals("int")) && !(l.getType().toString().equals("noType"))) {
-                addError(l.getLine(), "unsupported operand type for " + binaryExpression.getBinaryOperator());
+                addError(l.getLine(), String.format("unsupported operand type for %s", binaryExpression.getBinaryOperator()));
                 binaryExpression.setType(new NoType());
             } else if (!(r.getType().toString().equals("int")) && !(r.getType().toString().equals("noType"))) {
-                addError(r.getLine(), "unsupported operand type for " + binaryExpression.getBinaryOperator());
+                addError(r.getLine(), String.format("unsupported operand type for %s", binaryExpression.getBinaryOperator()));
                 binaryExpression.setType(new NoType());
             } else if (r.getType().toString().equals("noType") || l.getType().toString().equals("noType")) {
                 binaryExpression.setType(new NoType());
@@ -358,10 +358,10 @@ public class TypeChecker extends VisitorImpl {
                 binaryExpression.getBinaryOperator() == BinaryOperator.and
         ) {
             if (!(l.getType().toString().equals("boolean")) && !(l.getType().toString().equals("noType"))) {
-                addError(l.getLine(), "unsupported operand type for " + binaryExpression.getBinaryOperator());
+                addError(l.getLine(), String.format("unsupported operand type for %s", binaryExpression.getBinaryOperator()));
                 binaryExpression.setType(new NoType());
             } else if (!(r.getType().toString().equals("boolean")) && !(r.getType().toString().equals("noType"))) {
-                addError(r.getLine(), "unsupported operand type for " + binaryExpression.getBinaryOperator());
+                addError(r.getLine(), String.format("unsupported operand type for %s", binaryExpression.getBinaryOperator()));
                 binaryExpression.setType(new NoType());
             } else if (r.getType().toString().equals("noType") || l.getType().toString().equals("noType"))
                 binaryExpression.setType(new NoType());
@@ -375,11 +375,11 @@ public class TypeChecker extends VisitorImpl {
             if (l.getType().toString().equals("noType") || r.getType().toString().equals("noType")) {
                 binaryExpression.setType(new NoType());
             } else if (!l.getType().toString().equals(r.getType().toString())) {
-                addError(l.getLine(), "unsupported operand type for " + binaryExpression.getBinaryOperator());
+                addError(l.getLine(), String.format("unsupported operand type for %s", binaryExpression.getBinaryOperator()));
                 binaryExpression.setType(new NoType());
             } else if (l.getType().toString().equals("int[]") || r.getType().toString().equals("int[]")) {
                 binaryExpression.setType(new NoType());
-                addError(l.getLine(), "unsupported operand type for " + binaryExpression.getBinaryOperator());
+                addError(l.getLine(), String.format("unsupported operand type for %s", binaryExpression.getBinaryOperator()));
             } else {
                 binaryExpression.setType(l.getType());
             }
@@ -397,7 +397,7 @@ public class TypeChecker extends VisitorImpl {
                 binaryExpression.setType(new NoType());
             } else if (l.getType().toString().equals("int[]") || r.getType().toString().equals("int[]")) {
                 binaryExpression.setType(new NoType());
-                addError(l.getLine(), "unsupported operand type for " + binaryExpression.getBinaryOperator());
+                addError(l.getLine(), String.format("unsupported operand type for %s", binaryExpression.getBinaryOperator()));
             } else {
                 binaryExpression.setType(l.getType());
             }
@@ -409,7 +409,7 @@ public class TypeChecker extends VisitorImpl {
     public void visit(ArrayCall arrayCall) {
         visitExpr(arrayCall.getArrayInstance());
         if (!arrayCall.getArrayInstance().getType().toString().equals("int[]") && !arrayCall.getArrayInstance().getType().toString().equals("noType")) {
-            addError(arrayCall.getLine(), "variable " + ((Identifier) arrayCall.getArrayInstance()).getName() + " is not an array");
+            addError(arrayCall.getLine(), String.format("variable %s is not an array", ((Identifier) arrayCall.getArrayInstance()).getName()));
             arrayCall.setType(new NoType());
         }
 
@@ -442,7 +442,7 @@ public class TypeChecker extends VisitorImpl {
         } catch (ItemNotFoundException exp) {
             if (identifier.getType() != null && identifier.getType().toString().equals("noType"))
                 return;
-            addError(identifier.getLine(), "variable " + identifier.getName() + " not declared");
+            addError(identifier.getLine(), String.format("variable %s not declared", identifier.getName()));
             identifier.setType(new NoType());
         }
     }
@@ -544,7 +544,7 @@ public class TypeChecker extends VisitorImpl {
             String whatType = getActorClassName(id.getName());
             if (id.getType().toString() == "noType") return;
             if (whatType.equals("")) {
-                addError(id.getLine(), "variable " + id.getName() + " is not callable");
+                addError(id.getLine(), String.format("variable %s is not callable", id.getName()));
             } else {
                 try {
                     SymbolTableHandlerItem tmp = (SymbolTableHandlerItem) (((SymbolTableActorItem) SymbolTable.root.get(SymbolTableActorItem.STARTKEY + whatType)).getActorSymbolTable().get(SymbolTableHandlerItem.STARTKEY + msgHandlerCall.getMsgHandlerName().getName()));
@@ -572,7 +572,7 @@ public class TypeChecker extends VisitorImpl {
                         }
                     }
                 } catch (ItemNotFoundException exp) {
-                    addError(id.getLine(), "there is no msghandler name " + msgHandlerCall.getMsgHandlerName().getName() + " in actor " + id.getName());
+                    addError(id.getLine(), String.format("there is no msghandler name %s in actor %s", msgHandlerCall.getMsgHandlerName().getName(), id.getName()));
                 }
             }
         } else if (msgHandlerCall.getInstance() instanceof Self) {
@@ -581,7 +581,7 @@ public class TypeChecker extends VisitorImpl {
             try {
                 SymbolTable.top.get(SymbolTableHandlerItem.STARTKEY + s);
             } catch (ItemNotFoundException exp) {
-                addError(msgHandlerCall.getLine(), "there is no msghandler name " + msgHandlerCall.getMsgHandlerName().getName() + " in this actor");
+                addError(msgHandlerCall.getLine(), String.format("there is no msghandler name %s in this actor", msgHandlerCall.getMsgHandlerName().getName()));
             }
         } else if (msgHandlerCall.getInstance() instanceof Sender) {
             Sender id = (Sender) msgHandlerCall.getInstance();
