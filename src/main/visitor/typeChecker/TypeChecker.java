@@ -68,52 +68,6 @@ public class TypeChecker extends VisitorImpl {
         System.out.println(Arrays.asList(SymbolTable.top.getSymbolTableItems()));
     }
 
-    protected void visitStatement(Statement stat) {
-        if (stat == null)
-            return;
-        else if (stat instanceof MsgHandlerCall)
-            this.visit((MsgHandlerCall) stat);
-        else if (stat instanceof Block)
-            this.visit((Block) stat);
-        else if (stat instanceof Conditional)
-            this.visit((Conditional) stat);
-        else if (stat instanceof For)
-            this.visit((For) stat);
-        else if (stat instanceof Break)
-            this.visit((Break) stat);
-        else if (stat instanceof Continue)
-            this.visit((Continue) stat);
-        else if (stat instanceof Print)
-            this.visit((Print) stat);
-        else if (stat instanceof Assign)
-            this.visit((Assign) stat);
-    }
-
-    protected void visitExpr(Expression expr) {
-        if (expr == null)
-            return;
-        else if (expr instanceof UnaryExpression)
-            this.visit((UnaryExpression) expr);
-        else if (expr instanceof BinaryExpression)
-            this.visit((BinaryExpression) expr);
-        else if (expr instanceof ArrayCall)
-            this.visit((ArrayCall) expr);
-        else if (expr instanceof ActorVarAccess)
-            this.visit((ActorVarAccess) expr);
-        else if (expr instanceof Identifier)
-            this.visit((Identifier) expr);
-        else if (expr instanceof Self)
-            this.visit((Self) expr);
-        else if (expr instanceof Sender)
-            this.visit((Sender) expr);
-        else if (expr instanceof BooleanValue)
-            this.visit((BooleanValue) expr);
-        else if (expr instanceof IntValue)
-            this.visit((IntValue) expr);
-        else if (expr instanceof StringValue)
-            this.visit((StringValue) expr);
-    }
-
     @Override
     public void visit(Program program) {
         actorDecs = program.getActors();

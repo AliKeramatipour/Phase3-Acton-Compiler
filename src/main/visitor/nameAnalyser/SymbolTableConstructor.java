@@ -11,30 +11,24 @@ import java.util.ArrayList;
 
 public class SymbolTableConstructor {
 
-    public void constructProgramSymbolTable()
-    {
+    public void constructProgramSymbolTable() {
         SymbolTable.push(new SymbolTable());
         SymbolTable.root = SymbolTable.top;
     }
 
-    public void construct(ActorDeclaration actorDeclaration)
-    {
+    public void construct(ActorDeclaration actorDeclaration) {
         SymbolTable actorSymbolTable = new SymbolTable(SymbolTable.top, actorDeclaration.getName().getName());
         SymbolTableActorItem actorItem = new SymbolTableActorItem(actorDeclaration);
         try {
             actorItem.setActorSymbolTable(actorSymbolTable);
             SymbolTable.root.put(actorItem);
-        }
-        catch(ItemAlreadyExistsException itemDuplication)
-        {
+        } catch (ItemAlreadyExistsException itemDuplication) {
             String actorName = SymbolTable.root.getItemCount() + "$" + actorDeclaration.getName().getName();
             actorItem.setName(actorName);
             try {
                 SymbolTable.root.put(actorItem);
-            }
-            catch(ItemAlreadyExistsException itemReduplication)
-            {
-                System.out.println("an error occurred");
+            } catch (ItemAlreadyExistsException itemReduplication) {
+                // System.out.println("an error occurred");
             }
         }
         SymbolTable.push(actorSymbolTable);
@@ -42,22 +36,19 @@ public class SymbolTableConstructor {
         addVarsToSymbolTable(actorDeclaration.getActorVars(), SymbolTableActorVariableItem.class);
     }
 
-    public void construct(HandlerDeclaration handlerDeclaration)
-    {
+    public void construct(HandlerDeclaration handlerDeclaration) {
         SymbolTableHandlerItem handlerItem = new SymbolTableHandlerItem(handlerDeclaration);
         SymbolTable handlerSymbolTable = new SymbolTable(SymbolTable.top, handlerDeclaration.getName().getName());
-        try
-        {
+        try {
             handlerItem.setHandlerSymbolTable(handlerSymbolTable);
             SymbolTable.top.put(handlerItem);
-        }
-        catch(ItemAlreadyExistsException itemDuplication) {
+        } catch (ItemAlreadyExistsException itemDuplication) {
             String newHandlerName = SymbolTable.top.getItemCount() + "$" + handlerDeclaration.getName().getName();
             handlerItem.setName(newHandlerName);
             try {
                 SymbolTable.top.put(handlerItem);
             } catch (ItemAlreadyExistsException itemReduplication) {
-                System.out.println("an error occurred in adding method to symbol table");
+                // System.out.println("an error occurred in adding method to symbol table");
             }
         }
         SymbolTable.push(handlerSymbolTable);
@@ -65,44 +56,36 @@ public class SymbolTableConstructor {
         addVarsToSymbolTable(handlerDeclaration.getLocalVars(), SymbolTableLocalVariableItem.class);
     }
 
-    public  void construct(Main main)
-    {
+    public void construct(Main main) {
         SymbolTable mainSymbolTable = new SymbolTable(SymbolTable.top, "main");
         SymbolTableMainItem mainItem = new SymbolTableMainItem(main);
         mainItem.setMainSymbolTable(mainSymbolTable);
         try {
             SymbolTable.root.put(mainItem);
-        }
-        catch(ItemAlreadyExistsException itemDuplication)
-        {
-            System.out.println("an error occurred in main construction");
+        } catch (ItemAlreadyExistsException itemDuplication) {
+            // System.out.println("an error occurred in main construction");
         }
         SymbolTable.push(mainSymbolTable);
         addVarsToSymbolTable(main.getMainActors(), SymbolTableLocalVariableItem.class);
     }
 
     public void addVarsToSymbolTable(ArrayList<? extends VarDeclaration> varDeclarations,
-                                     Class<? extends SymbolTableVariableItem> VariableItem){
-        for(VarDeclaration varDeclaration: varDeclarations){
-            try{
+                                     Class<? extends SymbolTableVariableItem> VariableItem) {
+        for (VarDeclaration varDeclaration : varDeclarations) {
+            try {
                 SymbolTableVariableItem varItem = VariableItem.getConstructor(VarDeclaration.class).newInstance(varDeclaration);
-                try{
+                try {
                     SymbolTable.top.put(varItem);
-                }
-                catch(ItemAlreadyExistsException itemDuplication){
-                    String newName =  SymbolTable.top.getItemCount() + "$" + varDeclaration.getIdentifier().getName();
+                } catch (ItemAlreadyExistsException itemDuplication) {
+                    String newName = SymbolTable.top.getItemCount() + "$" + varDeclaration.getIdentifier().getName();
                     varItem.setName(newName);
-                    try
-                    {
+                    try {
                         SymbolTable.top.put(varItem);
-                    }
-                    catch(ItemAlreadyExistsException itemReduplication)
-                    {
-                        System.out.println("error occurred in adding variable to symbol table");
+                    } catch (ItemAlreadyExistsException itemReduplication) {
+                        // System.out.println("error occurred in adding variable to symbol table");
                     }
                 }
-            }
-            catch(Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }

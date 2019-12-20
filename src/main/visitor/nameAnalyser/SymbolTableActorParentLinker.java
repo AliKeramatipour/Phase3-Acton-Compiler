@@ -10,17 +10,14 @@ import java.util.Set;
 
 public class SymbolTableActorParentLinker {
 
-    void findActorsParents(Program program)
-    {
+    void findActorsParents(Program program) {
         Set<String> visitedActors = new HashSet<>();
-        for(ActorDeclaration actorDeclaration: program.getActors())
-        {
+        for (ActorDeclaration actorDeclaration : program.getActors()) {
             linkActorWithItsParents(actorDeclaration, visitedActors);
         }
     }
 
-    private void linkActorWithItsParents(ActorDeclaration actorDeclaration, Set<String> visitedActors)
-    {
+    private void linkActorWithItsParents(ActorDeclaration actorDeclaration, Set<String> visitedActors) {
         SymbolTable currentSymTable, prevSymTable = null;
         SymbolTableActorItem actorItem;
         String name = actorDeclaration.getName().getName();
@@ -36,17 +33,14 @@ public class SymbolTableActorParentLinker {
                 name = actorItem.getParentName();
                 prevSymTable = currentSymTable;
             } while (name != null);
-        }
-        catch( ItemNotFoundException itemNotFound )
-        {
-            System.out.println( "error occurred in linking parents" );
+        } catch (ItemNotFoundException itemNotFound) {
+            // System.out.println( "error occurred in linking parents" );
         }
     }
 
     private Set<SymbolTable> actorsInCycle = new HashSet<>();
 
-    boolean hasCyclicInheritance(ActorDeclaration actorDeclaration)
-    {
+    boolean hasCyclicInheritance(ActorDeclaration actorDeclaration) {
         SymbolTableActorItem actorItem;
         SymbolTable actorSymTable, currentSymTable;
         String name = actorDeclaration.getName().getName();
@@ -54,17 +48,16 @@ public class SymbolTableActorParentLinker {
         try {
             actorItem = ((SymbolTableActorItem) SymbolTable.root.getInCurrentScope(SymbolTableActorItem.STARTKEY + name));
             actorSymTable = actorItem.getActorSymbolTable();
-            if(actorsInCycle.contains(actorSymTable)){
+            if (actorsInCycle.contains(actorSymTable)) {
                 return false;
             }
             currentSymTable = actorSymTable;
             do {
-                if(visitedActors.contains(currentSymTable)){
-                    if(currentSymTable == actorSymTable){
+                if (visitedActors.contains(currentSymTable)) {
+                    if (currentSymTable == actorSymTable) {
                         actorsInCycle.addAll(visitedActors);
                         return true;
-                    }
-                    else{
+                    } else {
                         return false;
                     }
                 }
@@ -72,9 +65,7 @@ public class SymbolTableActorParentLinker {
                 currentSymTable = currentSymTable.getPreSymbolTable();
             } while (currentSymTable != null);
             return false;
-        }
-        catch(ItemNotFoundException itemNotFound)
-        {
+        } catch (ItemNotFoundException itemNotFound) {
             return false;
         }
     }

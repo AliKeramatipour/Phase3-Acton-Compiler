@@ -13,6 +13,7 @@ import main.symbolTable.*;
 import main.symbolTable.symbolTableVariableItem.*;
 import main.symbolTable.itemException.*;
 import main.visitor.VisitorImpl;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
@@ -24,8 +25,7 @@ public class NameAnalyser extends VisitorImpl {
     private ArrayList<String> nameErrors;
     private int lastIndexOfVariable;
 
-    public NameAnalyser()
-    {
+    public NameAnalyser() {
         symbolTableConstructor = new SymbolTableConstructor();
         symbolTableActorLinker = new SymbolTableActorParentLinker();
         nameErrors = new ArrayList<>();
@@ -33,52 +33,43 @@ public class NameAnalyser extends VisitorImpl {
         setState(TraverseState.symbolTableConstruction);
     }
 
-    public int numOfErrors()
-    {
+    public int numOfErrors() {
         return nameErrors.size();
     }
 
-    private void switchState()
-    {
-        if(traverseState == TraverseState.symbolTableConstruction)
+    private void switchState() {
+        if (traverseState == TraverseState.symbolTableConstruction)
             setState(TraverseState.errorCatching);
-        else if(traverseState == TraverseState.errorCatching)
+        else if (traverseState == TraverseState.errorCatching)
             setState(TraverseState.PrintError);
         else
             setState(TraverseState.Exit);
     }
 
-    private void setState(TraverseState traverseState)
-    {
+    private void setState(TraverseState traverseState) {
         this.traverseState = traverseState;
     }
 
-    private void checkForPropertyRedefinition(ActorDeclaration actorDeclaration)
-    {
+    private void checkForPropertyRedefinition(ActorDeclaration actorDeclaration) {
         String name = actorDeclaration.getName().getName();
-        if(name.indexOf('$') != -1)
+        if (name.indexOf('$') != -1)
             nameErrors.add("Line:" + actorDeclaration.getName().getLine() + ":Redefinition of actor " + name.substring(name.indexOf('$') + 1));
-        try
-        {
+        try {
             SymbolTableActorItem actorItem = (SymbolTableActorItem) SymbolTable.root.getInCurrentScope(SymbolTableActorItem.STARTKEY + name);
             SymbolTable next = actorItem.getActorSymbolTable();
             SymbolTable.push(next);
-        }
-        catch(ItemNotFoundException itemNotFound)
-        {
-            System.out.println("there is an error in pushing class symbol table");
+        } catch (ItemNotFoundException itemNotFound) {
+            // System.out.println("there is an error in pushing class symbol table");
         }
     }
 
-    private void checkForPropertyRedefinitionInParentScopes(VarDeclaration varDeclaration)
-    {
+    private void checkForPropertyRedefinitionInParentScopes(VarDeclaration varDeclaration) {
         String name = varDeclaration.getIdentifier().getName();
         Set<SymbolTable> visitedSymbolTables = new HashSet<>();
         String variableKey = SymbolTableVariableItem.STARTKEY + name;
         SymbolTable current = SymbolTable.top.getPreSymbolTable();
         visitedSymbolTables.add(SymbolTable.top);
-        while(current != null &&  !visitedSymbolTables.contains(current))
-        {
+        while (current != null && !visitedSymbolTables.contains(current)) {
             visitedSymbolTables.add(current);
             try {
                 current.getInCurrentScope(variableKey);
@@ -87,43 +78,36 @@ public class NameAnalyser extends VisitorImpl {
 //                SymbolTable.top.updateInCurrentScope(variableKey , variable);
                 nameErrors.add("Line:" + varDeclaration.getIdentifier().getLine() + ":Redefinition of variable " + name.substring(name.indexOf('$') + 1));
                 return;
-            }
-            catch(ItemNotFoundException itemNotFound)
-            {
+            } catch (ItemNotFoundException itemNotFound) {
                 current = current.getPreSymbolTable();
             }
         }
     }
 
-    private void checkForPropertyRedefinition(VarDeclaration varDeclaration)
-    {
+    private void checkForPropertyRedefinition(VarDeclaration varDeclaration) {
         String name = varDeclaration.getIdentifier().getName();
-        if(name.indexOf('$') != -1) {
+        if (name.indexOf('$') != -1) {
             nameErrors.add("Line:" + varDeclaration.getIdentifier().getLine() + ":Redefinition of variable " + name.substring(name.indexOf('$') + 1));
             return;
         }
         try {
             SymbolTableVariableItem varItem = (SymbolTableVariableItem) SymbolTable.top.getInCurrentScope(SymbolTableVariableItem.STARTKEY + name);
             varItem.setIndex(lastIndexOfVariable++);
-            SymbolTable.top.updateInCurrentScope(SymbolTableVariableItem.STARTKEY + name , varItem);
-            if(varItem instanceof SymbolTableActorVariableItem || varItem instanceof SymbolTableKnownActorItem)
+            SymbolTable.top.updateInCurrentScope(SymbolTableVariableItem.STARTKEY + name, varItem);
+            if (varItem instanceof SymbolTableActorVariableItem || varItem instanceof SymbolTableKnownActorItem)
                 checkForPropertyRedefinitionInParentScopes(varDeclaration);
-        }
-        catch(ItemNotFoundException itemNotFound)
-        {
-            System.out.println("an error occurred");
+        } catch (ItemNotFoundException itemNotFound) {
+            // System.out.println("an error occurred");
         }
     }
 
-    private void checkForPropertyRedefinitionInParentScope(MsgHandlerDeclaration msgHandlerDeclaration)
-    {
+    private void checkForPropertyRedefinitionInParentScope(MsgHandlerDeclaration msgHandlerDeclaration) {
         String name = msgHandlerDeclaration.getName().getName();
         String methodKey = SymbolTableHandlerItem.STARTKEY + name;
         SymbolTable current = SymbolTable.top.getPreSymbolTable();
         Set<SymbolTable> visitedSymbolTables = new HashSet<>();
         visitedSymbolTables.add(SymbolTable.top);
-        while(current != null && !visitedSymbolTables.contains(current))
-        {
+        while (current != null && !visitedSymbolTables.contains(current)) {
             visitedSymbolTables.add(current);
             try {
                 current.getInCurrentScope(methodKey);
@@ -132,66 +116,58 @@ public class NameAnalyser extends VisitorImpl {
 //                SymbolTable.top.updateInCurrentScope(methodKey , method);
                 nameErrors.add("Line:" + msgHandlerDeclaration.getName().getLine() + ":Redefinition of msghandler " + name.substring(name.indexOf('$') + 1));
                 return;
-            }
-            catch(ItemNotFoundException itemNotFound)
-            {
+            } catch (ItemNotFoundException itemNotFound) {
                 current = current.getPreSymbolTable();
             }
         }
     }
 
-    private void checkForPropertyRedefinition(HandlerDeclaration handlerDeclaration)
-    {
+    private void checkForPropertyRedefinition(HandlerDeclaration handlerDeclaration) {
         String name = handlerDeclaration.getName().getName();
         SymbolTable next;
         String methodKey = SymbolTableHandlerItem.STARTKEY + name;
-        try
-        {
-            next = ((SymbolTableHandlerItem)SymbolTable.top.getInCurrentScope(methodKey)).getHandlerSymbolTable();
-        }
-        catch(ItemNotFoundException itemNotFound)
-        {
-            System.out.println("an error occurred in pushing method symbol table " + handlerDeclaration.getName().getName());
+        try {
+            next = ((SymbolTableHandlerItem) SymbolTable.top.getInCurrentScope(methodKey)).getHandlerSymbolTable();
+        } catch (ItemNotFoundException itemNotFound) {
+            // System.out.println("an error occurred in pushing method symbol table " + handlerDeclaration.getName().getName());
             return;
         }
-        if(name.indexOf('$') != -1) {
+        if (name.indexOf('$') != -1) {
             nameErrors.add("Line:" + handlerDeclaration.getName().getLine() + ":Redefinition of msghandler " + name.substring(name.indexOf('$') + 1));
             SymbolTable.push(next);
             return;
         }
-        if(handlerDeclaration instanceof MsgHandlerDeclaration)
+        if (handlerDeclaration instanceof MsgHandlerDeclaration)
             checkForPropertyRedefinitionInParentScope((MsgHandlerDeclaration) handlerDeclaration);
 
         SymbolTable.push(next);
     }
 
-    private void pushMainSymbolTable(){
-        try{
+    private void pushMainSymbolTable() {
+        try {
             SymbolTableMainItem mainItem = (SymbolTableMainItem) SymbolTable.root.getInCurrentScope(SymbolTableMainItem.STARTKEY + "main");
             SymbolTable next = mainItem.getMainSymbolTable();
             SymbolTable.push(next);
-        }
-        catch(ItemNotFoundException itemNotFound)
-        {
-            System.out.println("there is an error in pushing class symbol table");
+        } catch (ItemNotFoundException itemNotFound) {
+            // System.out.println("there is an error in pushing class symbol table");
         }
     }
 
     @Override
-    public void visit(Program program){
+    public void visit(Program program) {
 
-        while(traverseState != TraverseState.Exit) {
+        while (traverseState != TraverseState.Exit) {
             if (traverseState == TraverseState.symbolTableConstruction)
                 symbolTableConstructor.constructProgramSymbolTable();
             else if (traverseState == TraverseState.errorCatching)
                 symbolTableActorLinker.findActorsParents(program);
-            else if(traverseState == TraverseState.PrintError) {
+            else if (traverseState == TraverseState.PrintError) {
                 for (String error : nameErrors)
                     System.out.println(error);
                 return;
             }
 
-            for(ActorDeclaration actorDeclaration : program.getActors())
+            for (ActorDeclaration actorDeclaration : program.getActors())
                 actorDeclaration.accept(this);
             program.getMain().accept(this);
             switchState();
@@ -205,7 +181,7 @@ public class NameAnalyser extends VisitorImpl {
         else if (traverseState == TraverseState.errorCatching) {
             checkForPropertyRedefinition(actorDeclaration);
             //TODO: check cyclic inheritance
-            if(symbolTableActorLinker.hasCyclicInheritance(actorDeclaration)){
+            if (symbolTableActorLinker.hasCyclicInheritance(actorDeclaration)) {
                 nameErrors.add("Line:" + actorDeclaration.getLine() + ":Cyclic inheritance involving actor " + actorDeclaration.getName().getName());
             }
             if (actorDeclaration.getQueueSize() <= 0) {
@@ -215,20 +191,20 @@ public class NameAnalyser extends VisitorImpl {
 
         visitExpr(actorDeclaration.getName());
         visitExpr(actorDeclaration.getParentName());
-        for(VarDeclaration varDeclaration: actorDeclaration.getKnownActors())
+        for (VarDeclaration varDeclaration : actorDeclaration.getKnownActors())
             varDeclaration.accept(this);
-        for(VarDeclaration varDeclaration: actorDeclaration.getActorVars())
+        for (VarDeclaration varDeclaration : actorDeclaration.getActorVars())
             varDeclaration.accept(this);
-        if(actorDeclaration.getInitHandler() != null)
+        if (actorDeclaration.getInitHandler() != null)
             actorDeclaration.getInitHandler().accept(this);
-        for(MsgHandlerDeclaration msgHandlerDeclaration: actorDeclaration.getMsgHandlers())
+        for (MsgHandlerDeclaration msgHandlerDeclaration : actorDeclaration.getMsgHandlers())
             msgHandlerDeclaration.accept(this);
         SymbolTable.pop();
     }
 
     @Override
     public void visit(HandlerDeclaration handlerDeclaration) {
-        if(handlerDeclaration == null)
+        if (handlerDeclaration == null)
             return;
         if (traverseState == TraverseState.symbolTableConstruction)
             symbolTableConstructor.construct(handlerDeclaration);
@@ -236,23 +212,23 @@ public class NameAnalyser extends VisitorImpl {
             checkForPropertyRedefinition(handlerDeclaration);
 
         visitExpr(handlerDeclaration.getName());
-        for(VarDeclaration argDeclaration: handlerDeclaration.getArgs())
+        for (VarDeclaration argDeclaration : handlerDeclaration.getArgs())
             argDeclaration.accept(this);
-        for(VarDeclaration localVariable: handlerDeclaration.getLocalVars())
+        for (VarDeclaration localVariable : handlerDeclaration.getLocalVars())
             localVariable.accept(this);
-        for(Statement statement : handlerDeclaration.getBody())
+        for (Statement statement : handlerDeclaration.getBody())
             visitStatement(statement);
         SymbolTable.pop();
     }
 
     @Override
     public void visit(VarDeclaration varDeclaration) {
-        if(varDeclaration == null)
+        if (varDeclaration == null)
             return;
-        if(traverseState == TraverseState.errorCatching) {
+        if (traverseState == TraverseState.errorCatching) {
             checkForPropertyRedefinition(varDeclaration);
-            if(varDeclaration.getType() instanceof ArrayType){
-                if (((ArrayType)varDeclaration.getType()).getSize() <= 0){
+            if (varDeclaration.getType() instanceof ArrayType) {
+                if (((ArrayType) varDeclaration.getType()).getSize() <= 0) {
                     nameErrors.add("Line:" + varDeclaration.getType().getLine() + ":Array size must be positive");
                 }
             }
@@ -263,7 +239,7 @@ public class NameAnalyser extends VisitorImpl {
 
     @Override
     public void visit(Main programMain) {
-        if(programMain == null)
+        if (programMain == null)
             return;
 
         if (traverseState == TraverseState.symbolTableConstruction)
@@ -271,29 +247,29 @@ public class NameAnalyser extends VisitorImpl {
         else if (traverseState == TraverseState.errorCatching)
             pushMainSymbolTable();
 
-        for(ActorInstantiation mainActor : programMain.getMainActors())
+        for (ActorInstantiation mainActor : programMain.getMainActors())
             mainActor.accept(this);
         SymbolTable.pop();
     }
 
     @Override
     public void visit(ActorInstantiation actorInstantiation) {
-        if(actorInstantiation == null)
+        if (actorInstantiation == null)
             return;
 
         if (traverseState == TraverseState.errorCatching)
             checkForPropertyRedefinition(actorInstantiation);
 
         visitExpr(actorInstantiation.getIdentifier());
-        for(Identifier knownActor : actorInstantiation.getKnownActors())
+        for (Identifier knownActor : actorInstantiation.getKnownActors())
             visitExpr(knownActor);
-        for(Expression initArg : actorInstantiation.getInitArgs())
+        for (Expression initArg : actorInstantiation.getInitArgs())
             visitExpr(initArg);
     }
 
     @Override
     public void visit(UnaryExpression unaryExpression) {
-        if(unaryExpression == null)
+        if (unaryExpression == null)
             return;
 
         visitExpr(unaryExpression.getOperand());
@@ -301,7 +277,7 @@ public class NameAnalyser extends VisitorImpl {
 
     @Override
     public void visit(BinaryExpression binaryExpression) {
-        if(binaryExpression == null)
+        if (binaryExpression == null)
             return;
 
         visitExpr(binaryExpression.getLeft());
@@ -317,7 +293,7 @@ public class NameAnalyser extends VisitorImpl {
 
     @Override
     public void visit(ActorVarAccess actorVarAccess) {
-        if(actorVarAccess == null)
+        if (actorVarAccess == null)
             return;
 
         visitExpr(actorVarAccess.getVariable());
@@ -325,7 +301,7 @@ public class NameAnalyser extends VisitorImpl {
 
     @Override
     public void visit(Identifier identifier) {
-        if(identifier == null)
+        if (identifier == null)
             return;
     }
 
@@ -351,7 +327,7 @@ public class NameAnalyser extends VisitorImpl {
 
     @Override
     public void visit(MsgHandlerCall msgHandlerCall) {
-        if(msgHandlerCall == null) {
+        if (msgHandlerCall == null) {
             return;
         }
         try {
@@ -359,17 +335,16 @@ public class NameAnalyser extends VisitorImpl {
             visitExpr(msgHandlerCall.getMsgHandlerName());
             for (Expression argument : msgHandlerCall.getArgs())
                 visitExpr(argument);
-        }
-        catch(NullPointerException npe) {
-            System.out.println("null pointer exception occurred");
+        } catch (NullPointerException npe) {
+            // System.out.println("null pointer exception occurred");
         }
     }
 
     @Override
     public void visit(Block block) {
-        if(block == null)
+        if (block == null)
             return;
-        for(Statement statement : block.getStatements())
+        for (Statement statement : block.getStatements())
             visitStatement(statement);
     }
 
@@ -398,7 +373,7 @@ public class NameAnalyser extends VisitorImpl {
 
     @Override
     public void visit(Print print) {
-        if(print == null)
+        if (print == null)
             return;
         visitExpr(print.getArg());
     }
