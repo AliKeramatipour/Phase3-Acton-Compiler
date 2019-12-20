@@ -238,7 +238,7 @@ arrayCall returns [ArrayCall arrCall]
 
 actorVarAccess returns [ActorVarAccess av]
     :   self = SELF {Self self = new Self(); self.setLine($self.getLine());}
-        DOT id = identifier {$av = new ActorVarAccess($id.id, self); $av.setLine($self.getLine());}
+        DOT id = identifier {$av = new ActorVarAccess($id.id); $av.setLine($self.getLine());}
     ;
 
 expressionList returns [ArrayList <Expression> expressions]
