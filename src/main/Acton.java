@@ -19,23 +19,22 @@ public class Acton {
         actonLexer lexer = new actonLexer(reader);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         actonParser parser = new actonParser(tokens);
-        try{
+        try {
             Program program = parser.program().p; // program is starting production rule
             NameAnalyser nameAnalyser = new NameAnalyser();
             nameAnalyser.visit(program);
-            if( nameAnalyser.numOfErrors() > 0 ) {
+            if (nameAnalyser.numOfErrors() > 0) {
                 throw new CompileErrorException();
             }
 
-            TypeChecker typeChecker = new TypeChecker() ;
+            TypeChecker typeChecker = new TypeChecker();
             typeChecker.visit(program);
-            if( typeChecker.numOfErrors() > 0 ) {
+            if (typeChecker.numOfErrors() > 0) {
                 throw new CompileErrorException();
             }
 
 
-        }
-        catch(CompileErrorException compileError){
+        } catch (CompileErrorException compileError) {
         }
     }
 }
