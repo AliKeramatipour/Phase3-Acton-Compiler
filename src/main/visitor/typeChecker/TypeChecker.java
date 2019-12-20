@@ -128,7 +128,7 @@ public class TypeChecker extends VisitorImpl {
         //presettings
         try {
             actorWeAreIn = actorDeclaration;
-            SymbolTable.top = ((SymbolTableActorItem) SymbolTable.root.get("Actor_" + actorDeclaration.getName().getName())).getActorSymbolTable();
+            SymbolTable.top = ((SymbolTableActorItem) SymbolTable.root.get(SymbolTableActorItem.STARTKEY + actorDeclaration.getName().getName())).getActorSymbolTable();
 
         } catch (ItemNotFoundException exp) {
             addError(actorDeclaration.getName().getLine(), "ERROR CODE #0ff");
@@ -137,7 +137,7 @@ public class TypeChecker extends VisitorImpl {
         //test if EXTEND is right
         if (actorDeclaration.getParentName() != null) {
             try {
-                ((SymbolTableActorItem) SymbolTable.root.get("Actor_" + actorDeclaration.getParentName().getName())).getActorSymbolTable();
+                ((SymbolTableActorItem) SymbolTable.root.get(SymbolTableActorItem.STARTKEY + actorDeclaration.getParentName().getName())).getActorSymbolTable();
             } catch (ItemNotFoundException exp) {
                 addError(actorDeclaration.getName().getLine(), "actor type " + actorDeclaration.getParentName().getName() + " not declared");
             }
@@ -146,11 +146,11 @@ public class TypeChecker extends VisitorImpl {
         //know actors
         for (VarDeclaration tmp : actorDeclaration.getKnownActors()) {
             try {
-                SymbolTable.root.get("Actor_" + tmp.getType().toString());
+                SymbolTable.root.get(SymbolTableActorItem.STARTKEY + tmp.getType().toString());
             } catch (ItemNotFoundException exp) {
                 addError(tmp.getIdentifier().getLine(), "actor type " + tmp.getType().toString() + " not declared");
                 try {
-                    SymbolTableVariableItem test = (SymbolTableVariableItem) SymbolTable.top.get("Variable_" + tmp.getIdentifier().getName());
+                    SymbolTableVariableItem test = (SymbolTableVariableItem) SymbolTable.top.get(SymbolTableVariableItem.STARTKEY + tmp.getIdentifier().getName());
                     test.setType(new NoType());
                 } catch (ItemNotFoundException expP) {
                     addError(tmp.getIdentifier().getLine(), "ERROR CODE #2ff");
@@ -179,7 +179,7 @@ public class TypeChecker extends VisitorImpl {
     @Override
     public void visit(HandlerDeclaration handlerDeclaration) {
         try {
-            SymbolTable.top = ((SymbolTableHandlerItem) SymbolTable.top.get("Handler_" + handlerDeclaration.getName().getName())).getHandlerSymbolTable();
+            SymbolTable.top = ((SymbolTableHandlerItem) SymbolTable.top.get(SymbolTableHandlerItem.STARTKEY + handlerDeclaration.getName().getName())).getHandlerSymbolTable();
         } catch (ItemNotFoundException exp) {
             addError(handlerDeclaration.getLine(), "CODE #1FF");
         }
@@ -435,7 +435,7 @@ public class TypeChecker extends VisitorImpl {
     @Override
     public void visit(Identifier identifier) {
         isSelfSenderOrIdentifier = "identifier";
-        String searchVal = "Variable_" + identifier.getName();
+        String searchVal = SymbolTableVariableItem.STARTKEY + identifier.getName();
         try {
             SymbolTableVariableItem getItem = (SymbolTableVariableItem) SymbolTable.top.get(searchVal);
             identifier.setType(getItem.getType());
@@ -547,7 +547,7 @@ public class TypeChecker extends VisitorImpl {
                 addError(id.getLine(), "variable " + id.getName() + " is not callable");
             } else {
                 try {
-                    SymbolTableHandlerItem tmp = (SymbolTableHandlerItem) (((SymbolTableActorItem) SymbolTable.root.get("Actor_" + whatType)).getActorSymbolTable().get("Handler_" + msgHandlerCall.getMsgHandlerName().getName()));
+                    SymbolTableHandlerItem tmp = (SymbolTableHandlerItem) (((SymbolTableActorItem) SymbolTable.root.get(SymbolTableActorItem.STARTKEY + whatType)).getActorSymbolTable().get(SymbolTableHandlerItem.STARTKEY + msgHandlerCall.getMsgHandlerName().getName()));
                     // hala bayad validity field hayy ke pass mide ro barresi konim
                     ActorDeclaration thisActor = getActorDeclaration(whatType);
                     MsgHandlerDeclaration thisMsgHandler = (MsgHandlerDeclaration) tmp.getHandlerDeclaration();
@@ -579,7 +579,7 @@ public class TypeChecker extends VisitorImpl {
             Self id = (Self) msgHandlerCall.getInstance();
             String s = msgHandlerCall.getMsgHandlerName().getName();
             try {
-                SymbolTable.top.get("Handler_" + s);
+                SymbolTable.top.get(SymbolTableHandlerItem.STARTKEY + s);
             } catch (ItemNotFoundException exp) {
                 addError(msgHandlerCall.getLine(), "there is no msghandler name " + msgHandlerCall.getMsgHandlerName().getName() + " in this actor");
             }
