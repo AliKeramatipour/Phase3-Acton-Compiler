@@ -169,52 +169,61 @@ public class TypeChecker extends VisitorImpl {
             curr = getActorDeclaration(curr.getParentName().getName());
         }
 
+        boolean hasKnownActorMatchError = false;
         ArrayList<Identifier> knownActors = actorInstantiation.getKnownActors();
         if (allKnownActors.size() != knownActors.size()) {
-            addError(actorInstantiation.getLine(), "knownactors do not match with definition");
-            return;
+            hasKnownActorMatchError = true;
         }
-           
-        for (int i = 0; i < knownActors.size(); i++) {
+
+        int minSize = Math.min(knownActors.size(), allKnownActors.size());
+        for (int i = 0; i < minSize; i++) {
             Identifier id = knownActors.get(i);
             visit(id);
 
             Type first = id.getType();
             Type second = allKnownActors.get(i).getType();
             if (first instanceof NoType || second instanceof NoType)
-                return;
+                continue;
             if (!first.toString().equals(second.toString())) {
-                addError(actorInstantiation.getLine(), "knownactors do not match with definition");
-                return;
+                hasKnownActorMatchError = true;
             }
         }
+        if (hasKnownActorMatchError) {
+            addError(actorInstantiation.getLine(), "knownactors do not match with definition");
+        }
 
+
+        boolean hasInitArgMatchError = false;
         ArrayList<Expression> initArgs = actorInstantiation.getInitArgs();
         InitHandlerDeclaration initHandlerDeclaration = thisActor.getInitHandler();
         if (initHandlerDeclaration == null) {
             if (actorInstantiation.getInitArgs().size() != 0)
-                addError(actorInstantiation.getLine(), "initial vars does not match with definition");
-            return;
-        }
+                hasInitArgMatchError = true;
+        } else {
 
-        ArrayList<VarDeclaration> initHandlerArgs = initHandlerDeclaration.getArgs();
-        if (initArgs.size() != initHandlerArgs.size()) {
-            addError(actorInstantiation.getLine(), "initial vars does not match with definition");
-            return;
-        }
 
-        for (int i = 0; i < initArgs.size(); i++) {
-            Expression id = initArgs.get(i);
-            visitExpr(id);
-
-            Type first = id.getType();
-            Type second = initHandlerArgs.get(i).getType();
-            if (first instanceof NoType || second instanceof NoType)
-                continue;
-            if (!first.toString().equals(second.toString())) {
-                addError(actorInstantiation.getLine(), "initial vars does not match with definition");
-                return;
+            ArrayList<VarDeclaration> initHandlerArgs = initHandlerDeclaration.getArgs();
+            if (initArgs.size() != initHandlerArgs.size()) {
+                hasInitArgMatchError = true;
             }
+
+            minSize = Math.min(initArgs.size(), initHandlerArgs.size());
+            for (int i = 0; i < minSize; i++) {
+                Expression id = initArgs.get(i);
+                visitExpr(id);
+
+                Type first = id.getType();
+                Type second = initHandlerArgs.get(i).getType();
+                if (first instanceof NoType || second instanceof NoType)
+                    continue;
+                if (!first.toString().equals(second.toString())) {
+                    hasInitArgMatchError = true;
+
+                }
+            }
+        }
+        if (hasInitArgMatchError) {
+            addError(actorInstantiation.getLine(), "initial vars does not match with definition");
         }
 
     }
@@ -285,7 +294,7 @@ public class TypeChecker extends VisitorImpl {
         ) {
             boolean isLTypeOk = lType instanceof IntType;
             boolean isRTypeOk = rType instanceof IntType;
-            boolean isOk =  isLTypeOk && isRTypeOk;
+            boolean isOk = isLTypeOk && isRTypeOk;
             if (isOk) {
                 binaryExpression.setType(l.getType());
             } else {
@@ -451,7 +460,7 @@ public class TypeChecker extends VisitorImpl {
 
     private void checkCondition(Expression e) {
         boolean isOk = e.getType() instanceof BooleanType;
-        if(!isOk) {
+        if (!isOk) {
             addError(e.getLine(), "condition type must be Boolean");
         }
     }
@@ -589,9 +598,9 @@ public class TypeChecker extends VisitorImpl {
         Type lType = l.getType();
         Type rType = r.getType();
 
-         if(lType instanceof NoType || rType instanceof NoType) {
-             return;
-         }
+        if (lType instanceof NoType || rType instanceof NoType) {
+            return;
+        }
 
         boolean isOk = canBeAssignedTo(lType, rType);
         if (isOk) {
